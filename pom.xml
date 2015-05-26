@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.diet4j</groupId>
+    <artifactId>org.diet4j</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <name>org.diet4j</name>
+    <url>http://diet4j.org/</url>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>org.diet4j.cmdline</module>
+        <module>org.diet4j.core</module>
+        <module>org.diet4j.tomcat</module>
+    </modules>
+</project>
