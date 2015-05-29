@@ -21,6 +21,7 @@
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-catalina</artifactId>
             <version>8.0.5</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -51,7 +52,8 @@
                 <configuration>
                     <descriptors>
                         <descriptor>src/assembly/all.xml</descriptor>
-                    </descriptors> 
+                    </descriptors>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
             </plugin>
         </plugins>
