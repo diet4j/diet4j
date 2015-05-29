@@ -365,9 +365,20 @@ public abstract class AbstractScanningModuleRegistry
             switch( rootChildName ) {
                 case "artifactId":
                     moduleName = rootChild.getTextContent();
+                    if( !pomProperties.containsKey( "project.artifactId" )) {
+                        pomProperties.put( "project.artifactId", moduleName );
+                    }
                     break;
                 case "version":
                     moduleVersion = rootChild.getTextContent();
+                    if( !pomProperties.containsKey( "project.version" )) {
+                        pomProperties.put( "project.version", moduleVersion );
+                    }
+                    break;
+                case "groupId":
+                    if( !pomProperties.containsKey( "project.groupId" )) {
+                        pomProperties.put( "project.groupId", rootChild.getTextContent() );
+                    }
                     break;
                 case "properties":
                     NodeList propertiesChildren = rootChild.getChildNodes();
@@ -495,13 +506,11 @@ public abstract class AbstractScanningModuleRegistry
             }
         }
         
-        String runClassName        = null;
-        String activationClassName = null;
+        String runClassName = null;
         if( manifestEntryStream != null ) {
             Properties manifestProperties = new Properties();
             manifestProperties.load( manifestEntryStream );
-            runClassName        = manifestProperties.getProperty( "Main-Class" );
-            activationClassName = manifestProperties.getProperty( ACTIVATION_ENTRY_IN_MANIFEST );
+            runClassName = manifestProperties.getProperty( "Main-Class" );
         }
         
         ModuleMeta ret = null;
@@ -522,6 +531,11 @@ public abstract class AbstractScanningModuleRegistry
                         runTime[i] = new ModuleRequirement( current.getRequiredModuleName(), version2, current.isOptional() );
                     }
                 }
+            }
+
+            String activationClassName = pomProperties.get( ACTIVATION_CLASS_PROPERTY );
+            if( activationClassName != null ) {
+                activationClassName = replaceProperties( pomProperties, activationClassName );
             }
 
             ret = new ModuleMeta( // FIXME: extract more info from pom files
@@ -758,8 +772,9 @@ public abstract class AbstractScanningModuleRegistry
     private static final Logger log = Logger.getLogger( AbstractScanningModuleRegistry.class.getName() );
     
     /**
-     * Name of the (optional) entry in MANIFEST.MF that identifies the activation/deactivation class
+     * Name of the (optional) property in pom.xml that identifies the activation/deactivation class
      * in a Module JAR.
      */
-    public static final String ACTIVATION_ENTRY_IN_MANIFEST = "diet4j-activation-class";
+    
+    public static final String ACTIVATION_CLASS_PROPERTY = "diet4j.activationclass";
 }
