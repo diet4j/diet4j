@@ -13,6 +13,7 @@
     <modules>
         <module>diet4j-cmdline</module>
         <module>diet4j-core</module>
+        <module>diet4j-inclasspath</module>
         <module>diet4j-status</module>
         <module>diet4j-tomcat</module>
     </modules>
