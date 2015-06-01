@@ -141,7 +141,7 @@ public class TomcatModuleLoader
         TomcatWebAppClassLoader myClassLoader = (TomcatWebAppClassLoader) super.getClassLoader();
 
         try {
-            ModuleRequirement rootRequirement = ModuleRequirement.create1( theRootmodule );
+            ModuleRequirement rootRequirement = ModuleRequirement.parse( theRootmodule );
         
             ModuleMeta foundRootMeta   = theModuleRegistry.determineSingleResolutionCandidate( rootRequirement );
             Module     foundRootModule = theModuleRegistry.resolve( foundRootMeta );

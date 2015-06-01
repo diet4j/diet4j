@@ -36,20 +36,24 @@ public class ScanningClasspathModuleRegistry
         AbstractScanningModuleRegistry
 {
     /**
-     * Obtain the singleton instance of this class.
+     * Instantiate ScanningClasspathModuleRegistry as the singleton ModuleRegistry
      * 
      * @return the singleton instance
+     * @throws IllegalStateException thrown if there is already a singleton instance
      * @throws IOException reading files failed
      */
-    public static synchronized ScanningClasspathModuleRegistry getSingleton()
+    public static synchronized ScanningClasspathModuleRegistry instantiate()
             throws
+                IllegalStateException,
                 IOException
     {
-        if( theSingleton == null ) {            
-            HashMap<String,ModuleMeta[]> metas = findModuleMetas(ScanningClasspathModuleRegistry.class.getClassLoader() );
-            theSingleton = new ScanningClasspathModuleRegistry( metas );
+        if( theSingleton != null ) {
+            throw new IllegalStateException( "Have a singleton already: " + theSingleton );
         }
-        return theSingleton;
+        HashMap<String,ModuleMeta[]> metas = findModuleMetas(ScanningClasspathModuleRegistry.class.getClassLoader() );
+        theSingleton = new ScanningClasspathModuleRegistry( metas );
+
+        return (ScanningClasspathModuleRegistry) theSingleton;
     }
     
     /**
@@ -130,9 +134,4 @@ public class ScanningClasspathModuleRegistry
 
         return metas;
     }
-
-    /**
-     * The singleton instance.
-    */
-    protected static ScanningClasspathModuleRegistry theSingleton;
 }

@@ -20,6 +20,7 @@
 package org.diet4j.core;
 
 import java.io.Serializable;
+import java.text.ParseException;
 
 /**
  * This collects all information needed to find a Module.
@@ -33,57 +34,65 @@ public class ModuleRequirement
     /**
       * Factory method.
       *
-      * @param requiredModuleName the name of the required Module, in any version
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
       * @return the created ModuleRequirement
       */
-    public static ModuleRequirement create1(
-            String requiredModuleName )
+    public static ModuleRequirement create(
+            String  requiredModuleGroupId,
+            String  requiredModuleArtifactId )
     {
-        return new ModuleRequirement( requiredModuleName, null, false );
+        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, null, false );
     }
 
     /**
       * Factory method.
       *
-      * @param requiredModuleName the name of the required Module, in any version
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
       * @param isOptional if true, this ModuleRequirement is optional
       * @return the created ModuleRequirement
       */
-    public static ModuleRequirement create1(
-            String  requiredModuleName,
+    public static ModuleRequirement create(
+            String  requiredModuleGroupId,
+            String  requiredModuleArtifactId,
             boolean isOptional )
     {
-        return new ModuleRequirement( requiredModuleName, null, isOptional );
+        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, null, isOptional );
     }
 
     /**
       * Factory method.
       *
-      * @param requiredModuleName the name of the required Module
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
       * @param requiredModuleVersion the version of the required Module, null if any
       * @return the created ModuleRequirement
       */
-    public static ModuleRequirement create1(
-            String  requiredModuleName,
-            String  requiredModuleVersion )
+    public static ModuleRequirement create(
+            String requiredModuleGroupId,
+            String requiredModuleArtifactId,
+            String requiredModuleVersion )
     {
-        return new ModuleRequirement( requiredModuleName, requiredModuleVersion, false );
+        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, false );
     }
 
     /**
       * Factory method.
       *
-      * @param requiredModuleName the name of the required Module
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
       * @param requiredModuleVersion the version of the required Module, null if any
       * @param isOptional if true, this ModuleRequirement is optional
       * @return the created ModuleRequirement
       */
-    public static ModuleRequirement create1(
-            String  requiredModuleName,
+    public static ModuleRequirement create(
+            String  requiredModuleGroupId,
+            String  requiredModuleArtifactId,
             String  requiredModuleVersion,
             boolean isOptional )
     {
-        return new ModuleRequirement( requiredModuleName, requiredModuleVersion, isOptional );
+        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, isOptional );
     }
     
     /**
@@ -91,50 +100,72 @@ public class ModuleRequirement
       * 
       * @param s the String to be parsed
       * @return the created ModuleRequirement
+      * @throws ParseException thrown if the provided s did have an invalid syntax
       */
     public static ModuleRequirement parse(
             String s )
+        throws
+            ParseException
     {
-        int colon = s.indexOf( ":" );
-        if( colon >= 0 ) {
-            return new ModuleRequirement( s.substring( 0, colon ), s.substring( colon+1 ), false );
-        } else {
-            return new ModuleRequirement( s, null, false );
+        String [] parts = s.split( ":" );
+        switch( parts.length ) {
+            case 2:
+                return new ModuleRequirement( parts[0], parts[1], null, false );
+            case 3:
+                return new ModuleRequirement( parts[0], parts[1], parts[2], false );
+            default:
+                throw new ParseException( "Not a valid Module identifier, needs one or two colons: " + s, 0 );
         }
     }
 
     /**
       * Construct one.
       *
-      * @param requiredModuleName the name of the required Module
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
       * @param requiredModuleVersion the version of the required Module, null if any
       * @param isOptional if true, this ModuleRequirement is optional
       */
     protected ModuleRequirement(
-            String  requiredModuleName,
+            String  requiredModuleGroupId,
+            String  requiredModuleArtifactId,
             String  requiredModuleVersion,
             boolean isOptional )
     {
-        if( requiredModuleName == null || requiredModuleName.isEmpty() ) {
-            throw new IllegalArgumentException( "Required module name must not be null or an empty string" );
+        if( requiredModuleGroupId == null || requiredModuleGroupId.isEmpty() ) {
+            throw new IllegalArgumentException( "Required module groupId must not be null or an empty string" );
+        }
+        if( requiredModuleArtifactId == null || requiredModuleArtifactId.isEmpty() ) {
+            throw new IllegalArgumentException( "Required module artifactId must not be null or an empty string" );
         }
         if( requiredModuleVersion != null && requiredModuleVersion.isEmpty() ) {
             throw new IllegalArgumentException( "Required module version must not be an empty string" );
         }
-        theRequiredModuleName    = requiredModuleName;
-        theRequiredModuleVersion = requiredModuleVersion;
-        theIsOptional            = isOptional;
+        theRequiredModuleGroupId    = requiredModuleGroupId;
+        theRequiredModuleArtifactId = requiredModuleArtifactId;
+        theRequiredModuleVersion    = requiredModuleVersion;
+        theIsOptional               = isOptional;
         
     }
 
     /**
-      * Obtain the name of the Module that we require.
+      * Obtain the groupId of the Module that we require.
       *
-      * @return the name of the Module that we require
+      * @return the groupId of the Module that we require
       */
-    public final String getRequiredModuleName()
+    public final String getRequiredModuleGroupId()
     {
-        return theRequiredModuleName;
+        return theRequiredModuleGroupId;
+    }
+
+    /**
+      * Obtain the artifactId of the Module that we require.
+      *
+      * @return the artifactId of the Module that we require
+      */
+    public final String getRequiredModuleArtifactId()
+    {
+        return theRequiredModuleArtifactId;
     }
 
     /**
@@ -166,19 +197,16 @@ public class ModuleRequirement
     public boolean matches(
             ModuleMeta candidate )
     {
-        if( theRequiredModuleName != null ) {
-            if( !theRequiredModuleName.equals( candidate.getModuleName() ) ) {
-                return false;
-            }
-            if( theRequiredModuleVersion == null ) {
-                return true;
-            }
-            if( candidate.getModuleVersion() == null ) {
-                return true;
-            }
-            return theRequiredModuleVersion.equals( candidate.getModuleVersion() );
+        if( !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) ) {
+            return false;
         }
-        return false;
+        if( !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) ) {
+            return false;
+        }
+        if( theRequiredModuleVersion == null ) {
+            return true;
+        }
+        return theRequiredModuleVersion.equals( candidate.getModuleVersion() );
     }
 
     /**
@@ -190,7 +218,9 @@ public class ModuleRequirement
     public String toString()
     {
         StringBuilder buf = new StringBuilder();
-        buf.append( theRequiredModuleName );
+        buf.append( theRequiredModuleGroupId );
+        buf.append( ":" );
+        buf.append( theRequiredModuleArtifactId );
         buf.append( ":" );
         if( theRequiredModuleVersion != null ) {
             buf.append( theRequiredModuleVersion );
@@ -201,9 +231,14 @@ public class ModuleRequirement
     }
 
     /**
-     * The name of the required Module.
+     * The groupId of the required Module.
      */
-    protected String theRequiredModuleName;
+    protected String theRequiredModuleGroupId;
+
+    /**
+     * The artifactId of the required Module.
+     */
+    protected String theRequiredModuleArtifactId;
 
     /**
      * The version of the required Module.

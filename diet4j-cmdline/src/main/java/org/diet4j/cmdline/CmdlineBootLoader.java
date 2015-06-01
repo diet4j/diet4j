@@ -22,6 +22,7 @@ package org.diet4j.cmdline;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -92,11 +93,10 @@ public abstract class CmdlineBootLoader
                     }
                 } else {
                     // root module
-                    int colon = arg.indexOf( ":" );
-                    if( colon >= 0 ) {
-                        theRootModuleRequirement = ModuleRequirement.create1( arg.substring( 0, colon ), arg.substring( colon+1 ));
-                    } else {
-                        theRootModuleRequirement = ModuleRequirement.create1( arg );                     
+                    try {
+                        theRootModuleRequirement = ModuleRequirement.parse( arg );
+                    } catch( ParseException ex ) {
+                        helpAndQuit();
                     }
                     ++i; // so we are on the first argument
                     break; // while loop
@@ -216,7 +216,7 @@ public abstract class CmdlineBootLoader
         w.println( "       <directory>:  directory in which to look for modules" );
         w.println( "       <class>:      name of a non-default class whose main() method to run" );
         w.println( "       <method>:     name of a method in the run class to run, instead of main()" );
-        w.println( "       <rootmodule>: name of the root module to activate, given as <name>:<version> or <name>" );
+        w.println( "       <rootmodule>: name of the root module to activate, given as groupId:artifactId:version or groupId:artifactId" );
         w.println( "       <arg>:        argument to the main() method of the run class" );
         w.println( "--help: this message" );
         w.flush();

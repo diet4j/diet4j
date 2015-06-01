@@ -25,8 +25,18 @@ import java.util.Set;
  * A ModuleRegistry is a place where Modules can be found and resolved.
  * Typically, an application instantiates and uses only a single ModuleRegistry.
  */
-public interface ModuleRegistry
+public abstract class ModuleRegistry
 {
+    /**
+     * Obtain the singleton instance of this class, or a subclass.
+     * 
+     * @return the singleton instance, or null if not set
+     */
+    public static ModuleRegistry getSingleton()
+    {
+        return theSingleton;
+    }
+
     /**
      * Determine the ModuleMetas that are candidates to resolve a Module dependency, based
      * on the knowledge of this ModuleRegistry.
@@ -35,7 +45,7 @@ public interface ModuleRegistry
      * @return the ModuleMetas that are candidates for the resolution of the ModuleRequirement, in sequence from
      *         best matched to least matched if the ModuleRegistry makes such distinctions
      */
-    public ModuleMeta [] determineResolutionCandidates(
+    public abstract ModuleMeta [] determineResolutionCandidates(
             ModuleRequirement req );
 
     /**
@@ -47,7 +57,7 @@ public interface ModuleRegistry
      * @return the ModuleMeta that is the only candidate for the resolution of the ModuleRequirement
      * @throws ModuleResolutionCandidateNotUniqueException thrown if there were fewer or more than one ModuleMeta found
      */
-    public ModuleMeta determineSingleResolutionCandidate(
+    public abstract ModuleMeta determineSingleResolutionCandidate(
             ModuleRequirement req )
         throws
             ModuleResolutionCandidateNotUniqueException;
@@ -60,7 +70,7 @@ public interface ModuleRegistry
      * @throws ModuleNotFoundException thrown if the Module could not be found
      * @throws ModuleResolutionException thrown if the Module could not be resolved
      */
-    public Module resolve(
+    public abstract Module resolve(
             ModuleMeta meta )
         throws
             ModuleNotFoundException,
@@ -75,7 +85,7 @@ public interface ModuleRegistry
      * @throws ModuleNotFoundException thrown if the Module could not be found
      * @throws ModuleResolutionException thrown if the Module could not be resolved
      */
-    public Module resolve(
+    public abstract Module resolve(
             ModuleMeta meta,
             boolean    recursive )
         throws
@@ -89,7 +99,7 @@ public interface ModuleRegistry
      * @param meta the ModuleMeta whose resolution we check
      * @return the Module to which the ModuleMeta has been resolved already, or null if not
      */
-    public Module getResolutionOf(
+    public abstract Module getResolutionOf(
             ModuleMeta meta );
 
     /**
@@ -102,7 +112,7 @@ public interface ModuleRegistry
      * @return the set of Modules that this Module depends on
      * @see #determineUses
      */
-    public Module [] determineDependencies(
+    public abstract Module [] determineDependencies(
             Module theModule );
 
     /**
@@ -116,15 +126,26 @@ public interface ModuleRegistry
      * @return the set of Modules that this Module currently is used by
      * @see #determineDependencies
      */
-    public Module [] determineUses(
+    public abstract Module [] determineUses(
             Module theModule );
     
+    /**
+     * ModuleRegistries can also acts as a factory for the Modules' ClassLoaders.
+     *
+     * @param module the Module for which to create a ClassLoader
+     * @param parentClassLoader the ClassLoader to use as the parent ClassLoader
+     * @return the ClassLoader to use with the Module
+     */
+    protected abstract ClassLoader createClassLoader(
+            Module      module,
+            ClassLoader parentClassLoader );
+
     /**
      * Obtain the set of Module names currently contained in the registry.
      * 
      * @return the set of Module names
      */
-    public Set<String> nameSet();
+    public abstract Set<String> nameSet();
 
     /**
      * Add a ModuleRegistry listener to be notified when new Modules become available etc.
@@ -132,7 +153,7 @@ public interface ModuleRegistry
      * @param newListener the new listener to add
      * @see #removeModuleRegistryListener
      */
-    public void addModuleRegistryListener(
+    public abstract void addModuleRegistryListener(
             ModuleRegistryListener newListener );
 
     /**
@@ -141,6 +162,11 @@ public interface ModuleRegistry
      * @param oldListener the listener to remove
      * @see #addModuleRegistryListener
      */
-    public void removeModuleRegistryListener(
+    public abstract void removeModuleRegistryListener(
             ModuleRegistryListener oldListener );
+    
+    /**
+     * The singleton instance of this class. Must be set by subclasses.
+     */
+    protected static ModuleRegistry theSingleton;
 }

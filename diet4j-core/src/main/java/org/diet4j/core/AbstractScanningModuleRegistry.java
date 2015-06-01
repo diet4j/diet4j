@@ -75,8 +75,9 @@ public abstract class AbstractScanningModuleRegistry
             ModuleRequirement req )
     {
         ModuleMeta [] found;
+        String key = determineModuleRequirementKey( req );
         synchronized( RESOLVE_LOCK ) {
-            found = theMetas.get( req.getRequiredModuleName() );
+            found = theMetas.get( key);
         }
         if( found == null ) {
             return new ModuleMeta[0];
@@ -90,7 +91,7 @@ public abstract class AbstractScanningModuleRegistry
             }
             return new ModuleMeta[0];
         } else {
-            return new ModuleMeta[] { found[0] };
+            return found;
         }
     }
 
@@ -105,13 +106,13 @@ public abstract class AbstractScanningModuleRegistry
             ModuleMeta                   add,
             HashMap<String,ModuleMeta[]> metas )
     {
-        String name    = add.getModuleName();
-        String version = add.getModuleVersion();
+        String key = determineModuleMetaKey( add );
 
-        ModuleMeta [] already = metas.get( name );
+        ModuleMeta [] already = metas.get( key );
         ModuleMeta [] newArray;
 
         if( already != null ) {
+            String version = add.getModuleVersion();
             newArray = new ModuleMeta[ already.length + 1 ];
             int offset = 0;
             for( int i=0 ; i<already.length ; ++i ) {
@@ -121,7 +122,6 @@ public abstract class AbstractScanningModuleRegistry
                         log.log( Level.WARNING,
                                 "Adding module again: {0}: {1}, was: {2}",
                                 new Object[] {
-                                        name,
                                         add.toString(),
                                         add.getProvidesJar() != null ? add.getProvidesJar().getName() : "<no jar>",
                                         already[i].getProvidesJar() != null ? already[i].getProvidesJar().getName() : "<no jar>"
@@ -141,7 +141,7 @@ public abstract class AbstractScanningModuleRegistry
         } else {
             newArray = new ModuleMeta[] { add };
         }
-        metas.put( name, newArray );
+        metas.put( key, newArray );
     }
 
     /**
@@ -155,18 +155,6 @@ public abstract class AbstractScanningModuleRegistry
         return theMetas.keySet();
     }
 
-    /**
-     * Obtain the ModuleMeta(s) for a given Module name that are known to the registry.
-     * 
-     * @param name name of the Module
-     * @return set of ModuleMetas for that name, most current first
-     */
-    public ModuleMeta [] getModuleMetasFor(
-            String name )
-    {
-        return theMetas.get( name );
-    }
-    
     /**
      * Given a list of Jar filenames, parse the JARs and determine the ModuleMetas that they contain.
      * Add them to the provided hash.
@@ -347,9 +335,11 @@ public abstract class AbstractScanningModuleRegistry
         Element root = doc.getDocumentElement();
         root.normalize();
         
-        String moduleName    = "${project.artifactId}"; // default to what's in the Properties
-        String moduleVersion = "${project.version}";    // default to what's in the Properties
-        String parentVersion = null;
+        String moduleGroupId    = "${project.groupId}"; // default to what's in the Properties
+        String moduleArtifactId = "${project.artifactId}"; // default to what's in the Properties
+        String moduleVersion    = "${project.version}";    // default to what's in the Properties
+        String parentGroupId    = null;
+        String parentVersion    = null;
 
         ArrayList<ModuleRequirement> runTimeRequirements   = new ArrayList<>();
 
@@ -363,21 +353,22 @@ public abstract class AbstractScanningModuleRegistry
             }
             
             switch( rootChildName ) {
+                case "groupId":
+                    moduleGroupId = rootChild.getTextContent();
+                    if( !pomProperties.containsKey( "project.groupId" )) {
+                        pomProperties.put( "project.groupId", moduleGroupId );
+                    }
+                    break;
                 case "artifactId":
-                    moduleName = rootChild.getTextContent();
+                    moduleArtifactId = rootChild.getTextContent();
                     if( !pomProperties.containsKey( "project.artifactId" )) {
-                        pomProperties.put( "project.artifactId", moduleName );
+                        pomProperties.put( "project.artifactId", moduleArtifactId );
                     }
                     break;
                 case "version":
                     moduleVersion = rootChild.getTextContent();
                     if( !pomProperties.containsKey( "project.version" )) {
                         pomProperties.put( "project.version", moduleVersion );
-                    }
-                    break;
-                case "groupId":
-                    if( !pomProperties.containsKey( "project.groupId" )) {
-                        pomProperties.put( "project.groupId", rootChild.getTextContent() );
                     }
                     break;
                 case "properties":
@@ -406,6 +397,8 @@ public abstract class AbstractScanningModuleRegistry
                         }
                         if( parentChildName.equals( "version" )) {
                             parentVersion = parentChild.getTextContent();
+                        } else if( parentChildName.equals( "groupId" )) {
+                            parentGroupId = parentChild.getTextContent();
                         }
                     }
                     break;
@@ -422,10 +415,11 @@ public abstract class AbstractScanningModuleRegistry
                         if( dependenciesChildName.equals( "dependency" )) {
                             NodeList dependencyChildren = dependenciesChild.getChildNodes();
                             
-                            String  dependencyName    = null;
-                            String  dependencyVersion = null;
-                            String  dependencyScope   = null;
-                            boolean isOptional        = false;
+                            String  dependencyGroupdId   = null;
+                            String  dependencyArtifactId = null;
+                            String  dependencyVersion    = null;
+                            String  dependencyScope      = null;
+                            boolean isOptional           = false;
                             
                             for( int k=0 ; k<dependencyChildren.getLength() ; ++k ) {
                                 Node   dependencyChild     = dependencyChildren.item( k );
@@ -436,8 +430,11 @@ public abstract class AbstractScanningModuleRegistry
                                 }
                                 
                                 switch( dependencyChildName ) {
+                                    case "groupId":
+                                        dependencyGroupdId = dependencyChild.getTextContent();
+                                        break;
                                     case "artifactId":
-                                        dependencyName = dependencyChild.getTextContent();
+                                        dependencyArtifactId = dependencyChild.getTextContent();
                                         break;
                                     case "version":
                                         dependencyVersion = dependencyChild.getTextContent();
@@ -450,7 +447,7 @@ public abstract class AbstractScanningModuleRegistry
                                         break;
                                 }
                             }
-                            if( dependencyName != null && dependencyVersion != null ) {
+                            if( dependencyGroupdId != null && dependencyArtifactId != null && dependencyVersion != null ) {
                                 if( "compile".equals( dependencyScope )) {
                                     // ignore
 
@@ -458,7 +455,11 @@ public abstract class AbstractScanningModuleRegistry
                                     // ignore
 
                                 } else if( !"provided".equals( dependencyScope )) {
-                                    ModuleRequirement req = new ModuleRequirement( dependencyName, dependencyVersion, isOptional );
+                                    ModuleRequirement req = ModuleRequirement.create(
+                                            dependencyGroupdId,
+                                            dependencyArtifactId,
+                                            dependencyVersion,
+                                            isOptional ); // this may use symbolic names for version and groupId
                                     runTimeRequirements.add( req );
                                 } // Just like Maven, we ignore "provided" modules
                             }
@@ -467,29 +468,41 @@ public abstract class AbstractScanningModuleRegistry
                     break;
             }
         }
-        
-        moduleName    = replaceProperties( pomProperties, moduleName );
-        moduleVersion = replaceProperties( pomProperties, moduleVersion );
-
-        if( moduleName.startsWith( "diet4j" )) {
-            if(    moduleName.equals( "diet4j-cmdline" )
-                || moduleName.equals( "diet4j-core" )
-                || moduleName.equals( "diet4j-tomcat" ))
-            {
-                return null;
-            }
+        if( !pomProperties.containsKey( "project.version" )) {
+            pomProperties.put( "project.version", parentVersion );
         }
+        if( !pomProperties.containsKey( "project.groupId" )) {
+            pomProperties.put( "project.groupId", parentGroupId );
+        }
+        
+        moduleGroupId    = replaceProperties( pomProperties, moduleGroupId );
+        moduleArtifactId = replaceProperties( pomProperties, moduleArtifactId );
+        moduleVersion    = replaceProperties( pomProperties, moduleVersion );
+
         if( moduleVersion == null || moduleVersion.isEmpty() ) {
             moduleVersion = parentVersion;
         }
         if( moduleVersion == null || moduleVersion.isEmpty() ) {
             // try to get it from the filename
             String name = jar.getName();
-            if( name.startsWith( moduleName + "-" )) {
-                moduleVersion = name.substring( moduleName.length() + 1, name.length() - 4 );
+            if( name.startsWith( moduleArtifactId + "-" )) {
+                moduleVersion = name.substring( moduleArtifactId.length() + 1, name.length() - 4 );
             }
         }
+        if( moduleGroupId == null || moduleGroupId.isEmpty() ) {
+            moduleGroupId = parentGroupId;
+        }
         
+        if( "org.diet4j".equals( moduleGroupId )) {
+            // filter out modules that we consider pre-installed
+            if(    moduleArtifactId.equals( "diet4j-cmdline" )
+                || moduleArtifactId.equals( "diet4j-core" )
+                || moduleArtifactId.equals( "diet4j-tomcat" ))
+            {
+                return null;
+            }
+        }
+
         // if this is a JAR, do not add non-main artifacts that we might find in ~/.m2
         if( jar != null ) {
             String jarFileBaseName = jar.getName();
@@ -501,7 +514,7 @@ public abstract class AbstractScanningModuleRegistry
             if( lastPeriod > 0 ) {
                 jarFileBaseName = jarFileBaseName.substring( 0, lastPeriod );
             }
-            if( !jarFileBaseName.equals( moduleName + "-" + moduleVersion )) {
+            if( !jarFileBaseName.equals( moduleArtifactId + "-" + moduleVersion )) {
                 return null; // not a main artifact
             }
         }
@@ -514,22 +527,27 @@ public abstract class AbstractScanningModuleRegistry
         }
         
         ModuleMeta ret = null;
-        if( moduleName != null ) {
+        if( moduleArtifactId != null ) {
             ModuleRequirement [] runTime = new ModuleRequirement[ runTimeRequirements.size() ];
             
-            // copy into arrays, and while we are at it, replace symbolic version dependencies where needed
+            // copy into arrays, and while we are at it, replace symbolic names in version and groupId where needed
             for( int i=0 ; i<runTime.length ; ++i ) {
-                ModuleRequirement current = runTimeRequirements.get( i );
-                String            version = current.getRequiredModuleVersion();
-                if( version == null ) {
+                ModuleRequirement current  = runTimeRequirements.get( i );
+                String            groupId  = current.getRequiredModuleGroupId();
+                String            version  = current.getRequiredModuleVersion();
+                String            groupId2 = replaceProperties( pomProperties, groupId );
+                String            version2 = version != null ? replaceProperties( pomProperties, version ) : null;
+
+                if(    ( version == null || version.equals( version2 ) )
+                    && groupId.equals( groupId2 )) 
+                {
                     runTime[i] = current;
                 } else {
-                    String version2 = replaceProperties( pomProperties, version );
-                    if( version.equals( version2 )) {
-                        runTime[i] = current;
-                    } else {
-                        runTime[i] = new ModuleRequirement( current.getRequiredModuleName(), version2, current.isOptional() );
-                    }
+                    runTime[i] = ModuleRequirement.create(
+                            groupId2,
+                            current.getRequiredModuleArtifactId(),
+                            version2,
+                            current.isOptional() );
                 }
             }
 
@@ -539,7 +557,8 @@ public abstract class AbstractScanningModuleRegistry
             }
 
             ret = new ModuleMeta( // FIXME: extract more info from pom files
-                    moduleName,
+                    moduleGroupId,
+                    moduleArtifactId,
                     moduleVersion,
                     null,
                     null,
@@ -601,6 +620,30 @@ public abstract class AbstractScanningModuleRegistry
                 return null;
             }
         }
+    }
+
+    /**
+     * Determine the key to be used into theMeta hash from a ModuleRequirement.
+     * 
+     * @param req the ModuleRequirement
+     * @return the key
+     */
+    protected static String determineModuleRequirementKey(
+            ModuleRequirement req )
+    {
+        return req.getRequiredModuleGroupId() + ":" + req.getRequiredModuleArtifactId();
+    }
+
+    /**
+     * Determine the key to be used into theMeta hash from a ModuleMeta.
+     * 
+     * @param meta the ModuleMeta
+     * @return the key
+     */
+    protected static String determineModuleMetaKey(
+            ModuleMeta meta )
+    {
+        return meta.getModuleGroupId() + ":" + meta.getModuleArtifactId();
     }
 
     /**
@@ -761,7 +804,7 @@ public abstract class AbstractScanningModuleRegistry
     }
     
     /**
-     * The set of known ModuleMetas, keyed by name. Multiple
+     * The set of known ModuleMetas, keyed by groupid:artifactId. Multiple
      * versions of the ModuleMeta are ordered with the newest first.
      */
     protected final HashMap<String,ModuleMeta[]> theMetas; 
@@ -775,6 +818,5 @@ public abstract class AbstractScanningModuleRegistry
      * Name of the (optional) property in pom.xml that identifies the activation/deactivation class
      * in a Module JAR.
      */
-    
     public static final String ACTIVATION_CLASS_PROPERTY = "diet4j.activationclass";
 }

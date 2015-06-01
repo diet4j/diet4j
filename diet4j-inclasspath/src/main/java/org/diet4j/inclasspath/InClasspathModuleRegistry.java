@@ -37,36 +37,39 @@ public class InClasspathModuleRegistry
    extends
         AbstractScanningModuleRegistry
 {
-    public static void main( String [] args )
-            throws Exception
-    {
-        getSingleton();
-    }
-
     /**
-     * Obtain the singleton instance of this class.
+     * Instantiate an InClasspathModuleRegistry as the singleton ModuleRegistry
      * 
+     * @param loader the ClassLoader where to find the Modules
      * @return the singleton instance
+     * @throws IllegalStateException thrown if there is already a singleton instance
      * @throws IOException reading files failed
      */
-    public static synchronized InClasspathModuleRegistry getSingleton()
-            throws
-                IOException
+    public static synchronized InClasspathModuleRegistry instantiate(
+            ClassLoader loader )
+        throws
+            IllegalStateException,
+            IOException
     {
-        if( theSingleton == null ) {            
-            HashMap<String,ModuleMeta[]> metas = findModuleMetas( InClasspathModuleRegistry.class.getClassLoader() );
-            theSingleton = new InClasspathModuleRegistry( metas );
+        if( theSingleton != null ) {
+            throw new IllegalStateException( "Have a singleton already: " + theSingleton );
         }
-        return theSingleton;
+        HashMap<String,ModuleMeta[]> metas = findModuleMetas( loader );
+        theSingleton = new InClasspathModuleRegistry( metas, loader );
+
+        return (InClasspathModuleRegistry) theSingleton;
     }
     
     /**
      * Private constructor; use factory method.
      */
     private InClasspathModuleRegistry(
-            HashMap<String,ModuleMeta[]> metas )
+            HashMap<String,ModuleMeta[]> metas,
+            ClassLoader                  loader )
     {
         super( metas );
+        
+        theClassLoader = loader;
     }
     
     /**
@@ -103,7 +106,6 @@ public class InClasspathModuleRegistry
 
         while( metaInfoUrls.hasMoreElements() ) {
             URL metaInfoUrl = metaInfoUrls.nextElement();
-            
             switch( metaInfoUrl.getProtocol() ) {
                 case "jar":
                     String jarFile = metaInfoUrl.getFile();
@@ -138,7 +140,7 @@ public class InClasspathModuleRegistry
     }
 
     /**
-     * The singleton instance.
-    */
-    protected static InClasspathModuleRegistry theSingleton;
+     * The ClassLoader that was used to scan.
+     */
+    protected final ClassLoader theClassLoader;
 }

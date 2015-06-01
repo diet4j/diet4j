@@ -4,7 +4,7 @@
 
     <groupId>org.diet4j</groupId>
     <artifactId>diet4j</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.7-SNAPSHOT</version>
 
     <name>diet4j</name>
     <url>http://diet4j.org/</url>

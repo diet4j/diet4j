@@ -19,7 +19,6 @@
 
 package org.diet4j.core;
 
-import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +30,7 @@ import java.util.logging.Logger;
  * Collects functionality common to implementations of ModuleRegistry.
  */
 public abstract class AbstractModuleRegistry
-    implements
+    extends
         ModuleRegistry
 {
     /**

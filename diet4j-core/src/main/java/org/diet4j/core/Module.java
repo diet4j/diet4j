@@ -58,13 +58,23 @@ public class Module
     }
 
     /**
-     * Obtain the name of this Module. It is the same as the name of its ModuleMeta.
+     * Obtain the groupId of this Module. It is the same as the groupId of its ModuleMeta.
      *
-     * @return the name of this Module
+     * @return the groupId of this Module
      */
-    public final String getModuleName()
+    public final String getModuleGroupId()
     {
-        return theModuleMeta.getModuleName();
+        return theModuleMeta.getModuleGroupId();
+    }
+
+    /**
+     * Obtain the artifactId of this Module. It is the same as the artifactId of its ModuleMeta.
+     *
+     * @return the artifactId of this Module
+     */
+    public final String getModuleArtifactId()
+    {
+        return theModuleMeta.getModuleArtifactId();
     }
 
     /**
@@ -88,11 +98,11 @@ public class Module
     }
 
     /**
-     * Obtain the AbstractModuleRegistry in which this Module has been registered.
+     * Obtain the ModuleRegistry in which this Module has been registered.
      *
-     * @return the AbstractModuleRegistry in which this Module has been registered
+     * @return the ModuleRegistry in which this Module has been registered
      */
-    public final AbstractModuleRegistry getModuleRegistry()
+    public final ModuleRegistry getModuleRegistry()
     {
         return theRegistry;
     }
@@ -415,21 +425,13 @@ public class Module
     @Override
     public String toString()
     {
-        StringBuilder ret = new StringBuilder();
-        ret.append( theModuleMeta.getModuleName());
-        ret.append( ":" );
-        if( theModuleMeta.getModuleVersion() != null ) {
-            ret.append( theModuleMeta.getModuleVersion() );
-        } else {
-            ret.append( "?" );
-        }
-        return ret.toString();
+        return theModuleMeta.toString();
     }
 
     /**
      * The AbstractModuleRegistry in which this Module is registered.
      */
-    protected AbstractModuleRegistry theRegistry;
+    protected ModuleRegistry theRegistry;
 
     /**
      * The ModuleMeta for this Module.

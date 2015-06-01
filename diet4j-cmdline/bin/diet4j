@@ -19,8 +19,8 @@
 #
 
 M2="${HOME}/.m2"
-VERSION=1.0-SNAPSHOT
-DIET4JJAR="${M2}/repository/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}-full.jar"
+VERSION=0.7-SNAPSHOT
+DIET4JJAR="${M2}/repository/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar"
 
 java -jar ${DIET4JJAR} $@
 

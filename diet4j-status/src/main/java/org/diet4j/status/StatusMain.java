@@ -20,6 +20,7 @@
 package org.diet4j.status;
 
 import java.io.PrintStream;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -132,15 +133,19 @@ public class StatusMain
             out.print( name );
             out.print( ":" );
 
-            ModuleMeta [] versions = registry.determineResolutionCandidates( ModuleRequirement.create1( name ) );
-            for( ModuleMeta meta : versions ) {
-                String version = meta.getModuleVersion();
-                out.print( " " );
-                if( version != null ) {
-                    out.print( version );
-                } else {
-                    out.print( "<?>" );
+            try {
+                ModuleMeta [] versions = registry.determineResolutionCandidates( ModuleRequirement.parse( name ) );
+                for( ModuleMeta meta : versions ) {
+                    String version = meta.getModuleVersion();
+                    out.print( " " );
+                    if( version != null ) {
+                        out.print( version );
+                    } else {
+                        out.print( "<?>" );
+                    }
                 }
+            } catch( ParseException ex ) {
+                out.print( "<Cannot parse into ModuleRequirement>: " + name );
             }
             out.print( "\n" );
         }            
@@ -154,13 +159,15 @@ public class StatusMain
      * 
      * @throws ModuleNotFoundException thrown if a needed Module could not be found
      * @throws ModuleResolutionException thrown if a needed Module could not be resolved
+     * @throws ParseException thrown if the provided Module name was invalid
      */
     public static void showModule(
             String  name,
             boolean recursive )
         throws
             ModuleNotFoundException,
-            ModuleResolutionException
+            ModuleResolutionException,
+            ParseException
     {
         ModuleRegistry registry = findRegistry();
 

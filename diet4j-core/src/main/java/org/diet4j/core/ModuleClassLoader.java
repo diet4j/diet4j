@@ -77,11 +77,11 @@ public class ModuleClassLoader
     }
 
     /**
-     * Convenience method to oObtain the AbstractModuleRegistry in use.
+     * Convenience method to obtain the ModuleRegistry in use.
      * 
-     * @return the AbstractModuleRegistry
+     * @return the ModuleRegistry
      */
-    public AbstractModuleRegistry getModuleRegistry()
+    public ModuleRegistry getModuleRegistry()
     {
         return theModule.getModuleRegistry();
     }

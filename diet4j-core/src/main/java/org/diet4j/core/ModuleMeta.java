@@ -31,7 +31,8 @@ public class ModuleMeta
     /**
       * Constructor. This should not be directly invoked by the application programmer.
       *
-      * @param moduleName the programmatic name of the to-be-created Module
+      * @param moduleGroupId the Maven groupId of the to-be-created Module
+      * @param moduleArtifactId the Maven artifactId of the to-be-created Module
       * @param moduleVersion the version of the to-be-created Module, may be null (but that's discouraged)
       * @param moduleUserNames the name shown to the user of the to-be-created Module, keyed by the locale
       * @param moduleUserDescriptions the description shown to the user of the to-be-created Module, keyed by the locale
@@ -43,7 +44,8 @@ public class ModuleMeta
       * @param runClassName name of the class contained in this Module that contains the Module's run method, or null
       */
     protected ModuleMeta(
-            String               moduleName,
+            String               moduleGroupId,
+            String               moduleArtifactId,
             String               moduleVersion,
             Map<String,String>   moduleUserNames,
             Map<String,String>   moduleUserDescriptions,
@@ -54,7 +56,8 @@ public class ModuleMeta
             String               activationClassName,
             String               runClassName )
     {
-        theModuleName                  = moduleName;
+        theModuleGroupId               = moduleGroupId;
+        theModuleArtifactId            = moduleArtifactId;
         theModuleVersion               = moduleVersion;
         theModuleUserNames             = moduleUserNames;
         theModuleUserDescriptions      = moduleUserDescriptions;
@@ -67,13 +70,23 @@ public class ModuleMeta
     }
 
     /**
-      * Obtain the fully-qualified, unique name of the Module.
+      * Obtain the groupId of the Module.
       *
-      * @return the name for this Module
+      * @return the groupId for this Module
       */
-    public final String getModuleName()
+    public final String getModuleGroupId()
     {
-        return theModuleName;
+        return theModuleGroupId;
+    }
+
+    /**
+      * Obtain the artifactId of the Module.
+      *
+      * @return the artifactId for this Module
+      */
+    public final String getModuleArtifactId()
+    {
+        return theModuleArtifactId;
     }
 
     /**
@@ -114,7 +127,7 @@ public class ModuleMeta
             }
         }
         if( ret == null ) {
-            ret = theModuleName; // reasonable default
+            ret = toString(); // reasonable default
         }
         return ret;
     }
@@ -260,14 +273,13 @@ public class ModuleMeta
         }
         ModuleMeta realOther = (ModuleMeta) other;
 
-        if( ! theModuleName.equals( realOther.theModuleName )) {
+        if( ! theModuleGroupId.equals( realOther.theModuleGroupId )) {
             return false;
         }
-        if( theModuleVersion != null ) {
-            return theModuleVersion.equals( realOther.theModuleVersion );
-        } else {
-            return realOther.theModuleVersion == null;
+        if( ! theModuleArtifactId.equals( realOther.theModuleArtifactId )) {
+            return false;
         }
+        return theModuleVersion.equals( realOther.theModuleVersion );
     }
 
     /**
@@ -278,11 +290,8 @@ public class ModuleMeta
     @Override
     public int hashCode()
     {
-        int ret = theModuleName.hashCode();
+        int ret = theModuleGroupId.hashCode() % theModuleArtifactId.hashCode() % theModuleVersion.hashCode();
 
-        if( theModuleVersion != null ) {
-            ret %= theModuleVersion.hashCode();
-        }
         return ret;
     }
 
@@ -310,20 +319,23 @@ public class ModuleMeta
     public String toString()
     {
         StringBuilder buf = new StringBuilder();
-        buf.append( theModuleName );
+        buf.append( theModuleGroupId );
         buf.append( ":" );
-        if( theModuleVersion != null ) {
-            buf.append( theModuleVersion );
-        } else {
-            buf.append( "?" );
-        }
+        buf.append( theModuleArtifactId );
+        buf.append( ":" );
+        buf.append( theModuleVersion );
         return buf.toString();
     }
 
     /**
-     * The name of the module.
+     * The groupId of the module
      */
-    protected String theModuleName;
+    protected String theModuleGroupId;
+
+    /**
+     * The artifactId of the module.
+     */
+    protected String theModuleArtifactId;
 
     /**
      * The version of the module.
