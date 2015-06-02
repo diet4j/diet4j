@@ -29,6 +29,7 @@ import java.util.jar.JarFile;
 import org.diet4j.core.AbstractScanningModuleRegistry;
 import org.diet4j.core.Module;
 import org.diet4j.core.ModuleMeta;
+import org.diet4j.core.ModuleRegistry;
 
 /**
  * A (mock) ModuleRegistry when all Modules are on the class path.
@@ -45,21 +46,47 @@ public class InClasspathModuleRegistry
      * @throws IllegalStateException thrown if there is already a singleton instance
      * @throws IOException reading files failed
      */
-    public static synchronized InClasspathModuleRegistry instantiate(
+    public static InClasspathModuleRegistry instantiate(
             ClassLoader loader )
         throws
             IllegalStateException,
             IOException
     {
-        if( theSingleton != null ) {
-            throw new IllegalStateException( "Have a singleton already: " + theSingleton );
-        }
-        HashMap<String,ModuleMeta[]> metas = findModuleMetas( loader );
-        theSingleton = new InClasspathModuleRegistry( metas, loader );
+        synchronized( ModuleRegistry.class ) {
+            if( theSingleton != null ) {
+                throw new IllegalStateException( "Have a singleton already: " + theSingleton );
+            }
+            HashMap<String,ModuleMeta[]> metas = findModuleMetas( loader );
+            theSingleton = new InClasspathModuleRegistry( metas, loader );
 
-        return (InClasspathModuleRegistry) theSingleton;
+            return (InClasspathModuleRegistry) theSingleton;
+        }
     }
     
+    /**
+     * Obtain the already instantiated ModuleRegistry, or instantiate an InclasspathModuleRegistry
+     * as the singleton ModuleRegistry.
+     *
+     * @param loader the ClassLoader where to find the Modules
+     * @return the singleton instance
+     * @throws IllegalStateException thrown if there is already a singleton instance
+     * @throws IOException reading files failed
+     */
+    public static ModuleRegistry instantiateOrGet(
+            ClassLoader loader )
+        throws
+            IllegalStateException,
+            IOException
+    {
+        synchronized( ModuleRegistry.class ) {
+            if( theSingleton == null ) {
+                HashMap<String,ModuleMeta[]> metas = findModuleMetas( loader );
+                theSingleton = new InClasspathModuleRegistry( metas, loader );
+            }
+            return theSingleton;
+        }
+    }
+
     /**
      * Private constructor; use factory method.
      */

@@ -24,4 +24,3 @@ DIET4JJAR="${REPO}/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION
 MODULEDIR="${REPO}"
 
 java -jar ${DIET4JJAR} --directory ${MODULEDIR} $@
-

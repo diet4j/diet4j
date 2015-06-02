@@ -86,7 +86,7 @@ public abstract class CmdlineBootLoader
             String arg = args[i];
             if( flag == null ) {
                 if( arg.startsWith( "-" )) {
-                    if( arg.startsWith( "-- ")) {
+                    if( arg.startsWith( "--")) {
                         flag = arg.substring( 2 );
                     } else {
                         flag = arg.substring( 1 );
@@ -109,6 +109,7 @@ public abstract class CmdlineBootLoader
                         if( dirs.put( dir, arg ) != null ) {
                             helpAndQuit();
                         }
+                        flag = null;
                         break;
                     case "r":
                     case "run":
@@ -116,6 +117,7 @@ public abstract class CmdlineBootLoader
                             helpAndQuit();
                         }
                         theRunClassName = arg;
+                        flag = null;
                         break;
                     case "m":
                     case "method":
@@ -123,6 +125,7 @@ public abstract class CmdlineBootLoader
                             helpAndQuit();
                         }
                         theRunMethodName = arg;
+                        flag = null;
                         break;
                     default:
                         helpAndQuit();
@@ -140,7 +143,7 @@ public abstract class CmdlineBootLoader
         // the remaining arguments
         theRunArguments = new String[ args.length - i ];
         if( theRunArguments.length > 0 ) {
-            System.arraycopy( args, i, theRunArguments, 0, args.length-1 );
+            System.arraycopy( args, i, theRunArguments, 0, theRunArguments.length );
         }
     }
 
