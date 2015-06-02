@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.logging.Logger;
 import org.diet4j.core.Module;
 import org.diet4j.core.ModuleClassLoader;
 import org.diet4j.core.ModuleMeta;
@@ -46,8 +47,6 @@ public class StatusMain
      */
     public static void main(
             String [] args )
-        throws
-            Exception
     {
         String flag = null;
         HashMap<String,String> flags = new HashMap<>();
@@ -84,6 +83,7 @@ public class StatusMain
         }
         if( flags.remove( "s" ) != null || flags.remove( "showmoduleregistry" ) != null ) {
             showModuleRegistry();
+            return;
         }
         String module = flags.remove( "m" );
         if( module == null ) {
@@ -94,11 +94,15 @@ public class StatusMain
             return;
             
         } else if( module != null ) {
-            showModule( module, flags.remove( "r" ) != null || flags.remove( "recursive" ) != null );
+            try {
+                showModule( module, flags.remove( "r" ) != null || flags.remove( "recursive" ) != null );
+
+            } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
+                log.severe( ex.getLocalizedMessage() );
+            }
+            return;
         }
-        if( !flags.isEmpty() ) {
-            synopsis();
-        }
+        synopsis();
     }
     
     /**
@@ -232,6 +236,14 @@ public class StatusMain
      */
     public static void synopsis()
     {
-        System.out.println( "Don't invoke this incorrectly" );
+        System.out.println( "Synopsis:" );
+        System.out.println( "    --module <module> [--recursive]: display information about the named Module" );
+        System.out.println( "    --showmoduleregistry:            show all known Modules" );
+        System.out.println( "    --help:                          this message" );
     }
+    
+    /**
+     * Logger.
+     */
+    private static final Logger log = Logger.getLogger( StatusMain.class.getName() ); 
 }
