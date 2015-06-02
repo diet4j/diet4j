@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+# Used to create a downloadable package that can run without maven
+
+VERSION=0.7
+
+tar -c -z -f diet4j-cmdline-${VERSION}.tar.gz bin/diet4j bin/diet4j-dev -C target diet4j-cmdline-${VERSION}.jar -C ../.. LICENSE README
