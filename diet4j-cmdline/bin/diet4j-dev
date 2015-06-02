@@ -19,7 +19,7 @@
 #
 
 REPO="${HOME}/.m2/repository"
-VERSION=0.7-SNAPSHOT
+VERSION=0.7
 DIET4JJAR="${REPO}/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar"
 MODULEDIR="${REPO}"
 
