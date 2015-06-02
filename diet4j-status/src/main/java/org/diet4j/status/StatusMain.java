@@ -43,7 +43,6 @@ public class StatusMain
      * Main program, must be invoked by diet4j framework.
      * 
      * @param args command-line arguments
-     * @throws Exception stuff can happen
      */
     public static void main(
             String [] args )
