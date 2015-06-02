@@ -211,13 +211,13 @@ public abstract class CmdlineBootLoader
         PrintStream w = System.out;
         
         w.println( "Synopsis:" );
-        w.println( "[ --dir <directory> ]... [ --run <class> ][ --method <method> ] <rootmodule> [ <arg> ... ] " );
+        w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <rootmodule> [ <arg> ... ] " );
         w.println( "    where:" );
         w.println( "       <directory>:  directory in which to look for modules" );
         w.println( "       <class>:      name of a non-default class whose main() method to run" );
         w.println( "       <method>:     name of a method in the run class to run, instead of main()" );
         w.println( "       <rootmodule>: name of the root module to activate, given as groupId:artifactId:version or groupId:artifactId" );
-        w.println( "       <arg>:        argument to the main() method of the run class" );
+        w.println( "       <arg> ...:    argument(s) to the main() method of the run class" );
         w.println( "--help: this message" );
         w.flush();
         System.exit( 0 );
