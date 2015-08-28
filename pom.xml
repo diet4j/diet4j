@@ -4,7 +4,7 @@
 
     <groupId>org.diet4j</groupId>
     <artifactId>diet4j</artifactId>
-    <version>0.8</version>
+    <version>0.9</version>
 
     <name>diet4j</name>
     <url>http://diet4j.org/</url>
@@ -110,8 +110,8 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
         <connection>scm:git:https://github.com/diet4j/diet4j.git</connection>
         <developerConnection>scm:git:https://github.com/diet4j/diet4j.git</developerConnection>
         <url>https://github.com/diet4j/diet4j/</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>diet4j-0.9</tag>
+    </scm>
 
     <distributionManagement>
         <snapshotRepository>
@@ -152,4 +152,10 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
             </properties>
         </profile>
     </profiles>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 </project>

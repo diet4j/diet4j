@@ -63,8 +63,7 @@ public abstract class CmdlineBootLoader
             System.exit( ret );
 
         } catch( Throwable ex ) {
-            log.log( Level.SEVERE, "Something bad happened", ex  );
-            System.exit( 1 );
+            fatal( "Something bad happened:" + ( ex.getMessage() != null ? ex.getMessage() : ex.toString() ));
         }
     }
     
@@ -96,49 +95,64 @@ public abstract class CmdlineBootLoader
                     try {
                         theRootModuleRequirement = ModuleRequirement.parse( arg );
                     } catch( ParseException ex ) {
-                        helpAndQuit();
+                        fatal( ex.getMessage() );
                     }
                     ++i; // so we are on the first argument
                     break; // while loop
                 }
             } else {
                 switch( flag ) {
+                    case "h":
+                    case "help":
+                        helpAndQuit();
+                        break;
+
                     case "d":
                     case "directory":
-                        File dir = new File( arg ).getCanonicalFile();
-                        if( dirs.put( dir, arg ) != null ) {
-                            helpAndQuit();
+                        try {
+                            File dir = new File( arg ).getCanonicalFile();
+                            if( dirs.put( dir, arg ) != null ) {
+                                fatal( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + arg );
+                            }
+                            flag = null;
+                        } catch( IOException ex ) {
+                            fatal( "Directory specified in moduledirectory parameter cannot be resolved into a canonical path: " + arg );
                         }
-                        flag = null;
                         break;
+                    
                     case "r":
                     case "run":
                         if( theRunClassName != null ) {
-                            helpAndQuit();
+                            fatal( "Do not specify more than one run-class" );
                         }
                         theRunClassName = arg;
                         flag = null;
                         break;
+
                     case "m":
                     case "method":
                         if( theRunMethodName != null ) {
-                            helpAndQuit();
+                            fatal( "Do not specify more than one run-method" );
                         }
                         theRunMethodName = arg;
                         flag = null;
                         break;
+
                     default:
-                        helpAndQuit();
+                        fatal( "Unknown parameter " + flag );
                         break;
                 }
             }            
         }
         if( flag != null ) {
-            helpAndQuit();            
+            fatal( "No value provided for parameter " + flag );            
         }
         if( theRootModuleRequirement == null ) {
-            helpAndQuit();
+            fatal( "Must provide the name of a root module" );
         }
+
+        theModuleDirectories = new File[ dirs.size() ];
+        dirs.keySet().toArray( theModuleDirectories );
 
         // the remaining arguments
         theRunArguments = new String[ args.length - i ];
@@ -158,7 +172,7 @@ public abstract class CmdlineBootLoader
         ModuleRegistry registry = ScanningDirectoriesModuleRegistry.create( theModuleDirectories );
 
         // find and resolve the main module
-        ModuleMeta rootModuleMeta = null;
+        ModuleMeta rootModuleMeta;
         try {
             rootModuleMeta = registry.determineSingleResolutionCandidate( theRootModuleRequirement );
 
@@ -192,14 +206,12 @@ public abstract class CmdlineBootLoader
                 ret = 1;
 
             } finally {
-                if( rootModule != null ) {
-                    try {
-                        rootModule.deactivateRecursively();
-                    } catch( Throwable ex ) {
-                        log.log( Level.SEVERE, "Dectivation of module " + rootModuleMeta + " failed", ex );
+                try {
+                    rootModule.deactivateRecursively();
+                } catch( Throwable ex ) {
+                    log.log( Level.SEVERE, "Dectivation of module " + rootModuleMeta + " failed", ex );
 
-                        ret = 1;
-                    }
+                    ret = 1;
                 }
             }            
         }
@@ -225,11 +237,23 @@ public abstract class CmdlineBootLoader
         w.flush();
         System.exit( 0 );
     }
+    
+    /**
+     * Print fatal error and quit.
+     * 
+     * @param msg the error message
+     */
+    public static void fatal(
+            String msg )
+    {
+        log.log( Level.SEVERE, msg );
+        System.exit( 1 );
+    }
 
     /**
      * The paths to the Module JAR files.
      */
-    protected static String [] theModuleDirectories;
+    protected static File [] theModuleDirectories;
 
     /**
      * The name of the run class in the root Module, if specified on the command-line.

@@ -47,27 +47,25 @@ public class ScanningDirectoriesModuleRegistry
      * @return the created ScanningDirectoriesModuleRegistry
      */
     public static ScanningDirectoriesModuleRegistry create(
-            String [] dirs )
+            File [] dirs )
     {
         if( dirs == null || dirs.length == 0 ) {
             dirs = DEFAULT_MODULE_DIRECTORIES;
         }
 
-        File []       fileDirs = new File[ dirs.length ];
         List<JarFile> jars     = new ArrayList<>();
         for( int i=0 ; i<dirs.length ; ++i ) {
-            fileDirs[i] = new File( dirs[i] );
 
-            if( !fileDirs[i].exists() ) {
+            if( !dirs[i].exists() ) {
                 // silently ignore
                 continue;
             }
-            if( !fileDirs[i].isDirectory() ) {
-                throw new IllegalArgumentException( "Not a directory: " + fileDirs[i].getAbsolutePath() );
+            if( !dirs[i].isDirectory() ) {
+                throw new IllegalArgumentException( "Not a directory: " + dirs[i].getAbsolutePath() );
             }
             
             try {
-                List<JarFile> newJars = Files.walk( fileDirs[i].toPath() )
+                List<JarFile> newJars = Files.walk( dirs[i].toPath() )
                         .filter( ( Path f ) -> {
                                 String name = f.getFileName().toString();
                                 return name.endsWith( ".jar" ) || name.endsWith( ".war" ); } )
@@ -90,7 +88,7 @@ public class ScanningDirectoriesModuleRegistry
         HashMap<String,ModuleMeta []> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );
 
-        ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry( fileDirs, metas );
+        ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry( dirs, metas );
         return ret;
     }
 
@@ -148,18 +146,11 @@ public class ScanningDirectoriesModuleRegistry
     /**
      * The directories scanned by default if none are given as parameters.
      */
-    public static final String [] DEFAULT_MODULE_DIRECTORIES;
+    public static final File [] DEFAULT_MODULE_DIRECTORIES;
     static {
-        if( System.getProperty( "os.name" ).contains( "Windows" )) {
-            DEFAULT_MODULE_DIRECTORIES = new String [] {
-                System.getProperty( "user.home" ) + "\\.m2"
-            };
-        } else {
-            DEFAULT_MODULE_DIRECTORIES = new String [] {
-                "/usr/lib/java",
-                System.getProperty( "user.home" ) + "/.m2"
-            };
-        }
+        DEFAULT_MODULE_DIRECTORIES = new File [] {
+            new File( System.getProperty( "user.home" ) + File.separatorChar + ".m2" )
+        };
     }
 
     /**

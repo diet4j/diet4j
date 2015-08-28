@@ -114,7 +114,7 @@ public class ModuleRequirement
             case 3:
                 return new ModuleRequirement( parts[0], parts[1], parts[2], false );
             default:
-                throw new ParseException( "Not a valid Module identifier, needs one or two colons: " + s, 0 );
+                throw new ParseException( "Not a valid Module identifier, needs one or two colons to separate groupId from artifactId and an optional version: " + s, 0 );
         }
     }
 

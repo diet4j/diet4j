@@ -19,6 +19,10 @@
 
 package org.diet4j.tomcat;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
 import org.apache.catalina.loader.WebappLoader;
@@ -133,7 +137,22 @@ public class TomcatModuleLoader
         if( theModuledirectory == null ) {
             throw new LifecycleException( "moduledirectory parameter not set" );
         }
-        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( theModuledirectory.split( ":" ));
+
+        Map<File,String> dirs = new HashMap<>();
+        for( String dir : theModuledirectory.split( File.pathSeparator )) {
+            try {
+                File fileDir = new File( dir ).getCanonicalFile();
+                if( dirs.put( fileDir, dir ) != null ) {
+                    throw new LifecycleException( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + dir );
+                }
+            } catch( IOException ex ) {
+                throw new LifecycleException( "Directory specified in moduledirectory cannot be resolved into a canonical path: " + dir );
+            }
+        }
+        File [] dirArray = new File[ dirs.size() ];
+        dirs.keySet().toArray( dirArray );
+
+        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( dirArray );
         
         // I would have liked to invoke super.startInternal() last but that's the only way I can get at our ClassLoader.
         super.startInternal();
