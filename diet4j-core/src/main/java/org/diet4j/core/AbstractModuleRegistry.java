@@ -40,14 +40,17 @@ public abstract class AbstractModuleRegistry
     public final ModuleMeta determineSingleResolutionCandidate(
             ModuleRequirement req )
         throws
+            NoModuleResolutionCandidateException,
             ModuleResolutionCandidateNotUniqueException
     {
         ModuleMeta [] found = determineResolutionCandidates( req );
-        if( found != null && found.length == 1 ) {
-            return found[0];
-        } else {
+        if( found == null || found.length == 0 ) {
+            throw new NoModuleResolutionCandidateException( req );
+        }
+        if( found.length > 1 ) {
             throw new ModuleResolutionCandidateNotUniqueException( req, found );
         }
+        return found[0];
     }
 
     /**

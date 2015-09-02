@@ -55,11 +55,13 @@ public abstract class ModuleRegistry
      * 
      * @param req the ModuleRequirement that we attempt to resolve
      * @return the ModuleMeta that is the only candidate for the resolution of the ModuleRequirement
-     * @throws ModuleResolutionCandidateNotUniqueException thrown if there were fewer or more than one ModuleMeta found
+     * @throws NoModuleResolutionCandidateException thrown if no ModuleMeta was found
+     * @throws ModuleResolutionCandidateNotUniqueException thrown if there were more than one ModuleMeta found
      */
     public abstract ModuleMeta determineSingleResolutionCandidate(
             ModuleRequirement req )
         throws
+            NoModuleResolutionCandidateException,
             ModuleResolutionCandidateNotUniqueException;
 
     /**
