@@ -34,6 +34,18 @@ public class ModuleRequirement
     /**
       * Factory method.
       *
+      * @param requiredModuleArtifactId the artifactId of the required Module
+      * @return the created ModuleRequirement
+      */
+    public static ModuleRequirement create(
+            String  requiredModuleArtifactId )
+    {
+        return new ModuleRequirement( null, requiredModuleArtifactId, null, false );
+    }
+
+    /**
+      * Factory method.
+      *
       * @param requiredModuleGroupId the groupId of the required Module
       * @param requiredModuleArtifactId the artifactId of the required Module
       * @return the created ModuleRequirement
@@ -50,23 +62,7 @@ public class ModuleRequirement
       *
       * @param requiredModuleGroupId the groupId of the required Module
       * @param requiredModuleArtifactId the artifactId of the required Module
-      * @param isOptional if true, this ModuleRequirement is optional
-      * @return the created ModuleRequirement
-      */
-    public static ModuleRequirement create(
-            String  requiredModuleGroupId,
-            String  requiredModuleArtifactId,
-            boolean isOptional )
-    {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, null, isOptional );
-    }
-
-    /**
-      * Factory method.
-      *
-      * @param requiredModuleGroupId the groupId of the required Module
-      * @param requiredModuleArtifactId the artifactId of the required Module
-      * @param requiredModuleVersion the version of the required Module, null if any
+      * @param requiredModuleVersion the version of the required Module
       * @return the created ModuleRequirement
       */
     public static ModuleRequirement create(
@@ -109,12 +105,14 @@ public class ModuleRequirement
     {
         String [] parts = s.split( ":" );
         switch( parts.length ) {
+            case 1:
+                return new ModuleRequirement( null, parts[0], null, false );
             case 2:
-                return new ModuleRequirement( parts[0], parts[1], null, false );
+                return new ModuleRequirement( parts[0].isEmpty() ? null : parts[0], parts[1], null, false );
             case 3:
-                return new ModuleRequirement( parts[0], parts[1], parts[2], false );
+                return new ModuleRequirement( parts[0].isEmpty() ? null : parts[0], parts[1], parts[2].isEmpty() ? null : parts[2], false );
             default:
-                throw new ParseException( "Not a valid Module identifier, needs one or two colons to separate groupId from artifactId and an optional version: " + s, 0 );
+                throw new ParseException( "Not a valid Module identifier: " + s, 0 );
         }
     }
 
@@ -132,8 +130,8 @@ public class ModuleRequirement
             String  requiredModuleVersion,
             boolean isOptional )
     {
-        if( requiredModuleGroupId == null || requiredModuleGroupId.isEmpty() ) {
-            throw new IllegalArgumentException( "Required module groupId must not be null or an empty string" );
+        if( requiredModuleGroupId != null && requiredModuleGroupId.isEmpty() ) {
+            throw new IllegalArgumentException( "Required module groupId must not be an empty string" );
         }
         if( requiredModuleArtifactId == null || requiredModuleArtifactId.isEmpty() ) {
             throw new IllegalArgumentException( "Required module artifactId must not be null or an empty string" );
@@ -169,7 +167,7 @@ public class ModuleRequirement
     }
 
     /**
-     * Obtain the version of the Module that we required.
+     * Obtain the version of the Module that we require.
      *
      * @return the version of the Module that we require
      */
@@ -197,7 +195,7 @@ public class ModuleRequirement
     public boolean matches(
             ModuleMeta candidate )
     {
-        if( !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) ) {
+        if( theRequiredModuleGroupId != null && !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) ) {
             return false;
         }
         if( !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) ) {
@@ -218,14 +216,14 @@ public class ModuleRequirement
     public String toString()
     {
         StringBuilder buf = new StringBuilder();
-        buf.append( theRequiredModuleGroupId );
+        if( theRequiredModuleGroupId != null ) {
+            buf.append( theRequiredModuleGroupId );
+        }
         buf.append( ":" );
         buf.append( theRequiredModuleArtifactId );
         buf.append( ":" );
         if( theRequiredModuleVersion != null ) {
             buf.append( theRequiredModuleVersion );
-        } else {
-            buf.append( "?" );
         }
         return buf.toString();
     }

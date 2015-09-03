@@ -85,7 +85,7 @@ public class ScanningDirectoriesModuleRegistry
             }        
         }
 
-        HashMap<String,ModuleMeta []> metas = new HashMap<>();
+        HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );
 
         ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry( dirs, metas );
@@ -99,8 +99,8 @@ public class ScanningDirectoriesModuleRegistry
      * @param metas the ModuleMetas found during boot, keyed by their name, and then ordered by version
      */
     protected ScanningDirectoriesModuleRegistry(
-            File []                      dirs,
-            HashMap<String,ModuleMeta[]> metas )
+            File []                           dirs,
+            HashMap<String,MiniModuleMetaMap> metas )
     {
         super( metas );
 

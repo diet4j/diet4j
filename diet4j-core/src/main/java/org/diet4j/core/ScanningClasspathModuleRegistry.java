@@ -50,7 +50,7 @@ public class ScanningClasspathModuleRegistry
         if( theSingleton != null ) {
             throw new IllegalStateException( "Have a singleton already: " + theSingleton );
         }
-        HashMap<String,ModuleMeta[]> metas = findModuleMetas(ScanningClasspathModuleRegistry.class.getClassLoader() );
+        HashMap<String,MiniModuleMetaMap> metas = findModuleMetas(ScanningClasspathModuleRegistry.class.getClassLoader() );
         theSingleton = new ScanningClasspathModuleRegistry( metas );
 
         return (ScanningClasspathModuleRegistry) theSingleton;
@@ -62,7 +62,7 @@ public class ScanningClasspathModuleRegistry
      * @para metas the found ModuleMetas
      */
     private ScanningClasspathModuleRegistry(
-            HashMap<String,ModuleMeta[]> metas )
+            HashMap<String,MiniModuleMetaMap> metas )
     {
         super( metas );
     }
@@ -90,7 +90,7 @@ public class ScanningClasspathModuleRegistry
      * @return the found ModuleMetas, keyed by module name, and ordered by version
      * @throws IOException reading files failed
      */
-    protected static HashMap<String,ModuleMeta[]> findModuleMetas(
+    protected static HashMap<String,MiniModuleMetaMap> findModuleMetas(
             ClassLoader cl )
         throws
             IOException
@@ -128,7 +128,7 @@ public class ScanningClasspathModuleRegistry
             }
         }
         
-        HashMap<String,ModuleMeta []> metas = new HashMap<>();
+        HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );          // looks into the JARs, from the top
         addParsedModuleMetasFromDirectories( dirs, metas );   // looks into META-INF dirs
 

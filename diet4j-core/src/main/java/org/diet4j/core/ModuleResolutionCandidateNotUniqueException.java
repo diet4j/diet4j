@@ -62,12 +62,8 @@ public class ModuleResolutionCandidateNotUniqueException
             buf.append( "null" );
         }
 
-        if( theFoundMetas == null || theFoundMetas.length == 0 ) {
-            buf.append( ". Found none" );
-        } else {
-            buf.append( " unambiguously: found " );
-            buf.append(  theFoundMetas.length );
-        }
+        buf.append( " unambiguously: found " );
+        buf.append(  theFoundMetas.length );
         buf.append( "." );
         return buf.toString();
     }

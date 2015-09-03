@@ -27,8 +27,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.jar.JarFile;
 import org.diet4j.core.AbstractScanningModuleRegistry;
+import org.diet4j.core.MiniModuleMetaMap;
 import org.diet4j.core.Module;
-import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 
 /**
@@ -56,7 +56,7 @@ public class InClasspathModuleRegistry
             if( theSingleton != null ) {
                 throw new IllegalStateException( "Have a singleton already: " + theSingleton );
             }
-            HashMap<String,ModuleMeta[]> metas = findModuleMetas( loader );
+            HashMap<String,MiniModuleMetaMap> metas = findModuleMetas( loader );
             theSingleton = new InClasspathModuleRegistry( metas, loader );
 
             return (InClasspathModuleRegistry) theSingleton;
@@ -80,7 +80,7 @@ public class InClasspathModuleRegistry
     {
         synchronized( ModuleRegistry.class ) {
             if( theSingleton == null ) {
-                HashMap<String,ModuleMeta[]> metas = findModuleMetas( loader );
+                HashMap<String,MiniModuleMetaMap> metas = findModuleMetas( loader );
                 theSingleton = new InClasspathModuleRegistry( metas, loader );
             }
             return theSingleton;
@@ -91,8 +91,8 @@ public class InClasspathModuleRegistry
      * Private constructor; use factory method.
      */
     private InClasspathModuleRegistry(
-            HashMap<String,ModuleMeta[]> metas,
-            ClassLoader                  loader )
+            HashMap<String,MiniModuleMetaMap> metas,
+            ClassLoader                       loader )
     {
         super( metas );
         
@@ -122,7 +122,7 @@ public class InClasspathModuleRegistry
      * @return the found ModuleMetas, keyed by module name, and ordered by version
      * @throws IOException reading files failed
      */
-    protected static HashMap<String,ModuleMeta[]> findModuleMetas(
+    protected static HashMap<String,MiniModuleMetaMap> findModuleMetas(
             ClassLoader cl )
         throws
             IOException
@@ -159,7 +159,7 @@ public class InClasspathModuleRegistry
             }
         }
         
-        HashMap<String,ModuleMeta []> metas = new HashMap<>();
+        HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );          // looks into the JARs, from the top
         addParsedModuleMetasFromDirectories( dirs, metas );   // looks into META-INF dirs
 

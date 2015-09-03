@@ -44,13 +44,24 @@ public abstract class AbstractModuleRegistry
             ModuleResolutionCandidateNotUniqueException
     {
         ModuleMeta [] found = determineResolutionCandidates( req );
-        if( found == null || found.length == 0 ) {
-            throw new NoModuleResolutionCandidateException( req );
+        switch( found.length ) {
+            case 0:
+                throw new NoModuleResolutionCandidateException( req );
+
+            case 1:
+                return found[0];
+
+            default:
+                // if we found different groupIds, we can't decide
+                String groupId = found[0].getModuleGroupId();
+                for( int i=1 ; i<found.length ; ++i ) {
+                    if( !groupId.equals( found[i].getModuleGroupId())) {
+                        throw new ModuleResolutionCandidateNotUniqueException( req, found );
+                    }
+                }
+                // otherwise we take the first, which is the most recent version
+                return found[0];
         }
-        if( found.length > 1 ) {
-            throw new ModuleResolutionCandidateNotUniqueException( req, found );
-        }
-        return found[0];
     }
 
     /**

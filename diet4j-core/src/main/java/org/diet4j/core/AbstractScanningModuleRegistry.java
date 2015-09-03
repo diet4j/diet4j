@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -60,10 +61,11 @@ public abstract class AbstractScanningModuleRegistry
     /**
      * Private constructor, for subclasses only.
      *
-     * @param metas the ModuleMetas found, keyed by their name, and then ordered by version
+     * @param metas the ModuleMetas found, keyed by their artifactId, then by their groupId,
+     *               and then ordered by version
      */
     protected AbstractScanningModuleRegistry(
-            HashMap<String,ModuleMeta[]> metas )
+            Map<String,MiniModuleMetaMap> metas )
     {
         theMetas = metas;
     }
@@ -71,27 +73,59 @@ public abstract class AbstractScanningModuleRegistry
     /**
      * {@inheritDoc}
      */
+    @Override
     public ModuleMeta [] determineResolutionCandidates(
             ModuleRequirement req )
     {
-        ModuleMeta [] found;
-        String key = determineModuleRequirementKey( req );
+        MiniModuleMetaMap found1;
+
         synchronized( RESOLVE_LOCK ) {
-            found = theMetas.get( key);
+            found1 = theMetas.get( req.getRequiredModuleArtifactId() );
         }
-        if( found == null ) {
+        if( found1 == null ) {
             return new ModuleMeta[0];
         }
-        String version = req.getRequiredModuleVersion();
-        if( version != null ) {
-            for( ModuleMeta current : found ) {
-                if( version.equals( current.getModuleVersion() )) {
-                    return new ModuleMeta[] { current };
-                }
+
+        if( req.getRequiredModuleGroupId() != null ) {
+            // groupId was specified
+            ModuleMeta [] found2 = found1.get( req.getRequiredModuleGroupId() );
+            if( found2 == null ) {
+                return new ModuleMeta[0];
             }
-            return new ModuleMeta[0];
+
+            String version = req.getRequiredModuleVersion();
+            if( version != null ) {
+                for( ModuleMeta current : found2 ) {
+                    if( version.equals( current.getModuleVersion() )) {
+                        return new ModuleMeta[] { current };
+                    }
+                }
+                return new ModuleMeta[0];
+            } else {
+                return found2;
+            }
         } else {
-            return found;
+            // no groupId was specified
+            ModuleMeta [] found2 = found1.allValues();
+            
+            String version = req.getRequiredModuleVersion();
+            if( version != null ) {
+                int count=0;
+                for( int i=0 ; i<found2.length ; ++i ) {
+                    if( version.equals( found2[i].getModuleVersion() )) {
+                        found2[count++] = found2[i];
+                    }
+                }
+                if( count < found2.length ) {
+                    ModuleMeta [] ret = new ModuleMeta[ count ];
+                    System.arraycopy( found2, 0, ret, 0, count);
+                    return ret;
+                } else {
+                    return found2;
+                }
+            } else {
+                return found2;
+            }
         }
     }
 
@@ -103,12 +137,16 @@ public abstract class AbstractScanningModuleRegistry
      * @param metas the existing ModuleMetas
      */
     protected static void addModuleMeta(
-            ModuleMeta                   add,
-            HashMap<String,ModuleMeta[]> metas )
+            ModuleMeta                        add,
+            HashMap<String,MiniModuleMetaMap> metas )
     {
-        String key = determineModuleMetaKey( add );
-
-        ModuleMeta [] already = metas.get( key );
+        MiniModuleMetaMap map = metas.get( add.getModuleArtifactId() );
+        if( map == null ) {
+            map = new MiniModuleMetaMap();
+            metas.put( add.getModuleArtifactId(), map );
+        }
+        
+        ModuleMeta [] already = map.get( add.getModuleGroupId() );
         ModuleMeta [] newArray;
 
         if( already != null ) {
@@ -141,7 +179,7 @@ public abstract class AbstractScanningModuleRegistry
         } else {
             newArray = new ModuleMeta[] { add };
         }
-        metas.put( key, newArray );
+        map.put( add.getModuleGroupId(), newArray );
     }
 
     /**
@@ -163,8 +201,8 @@ public abstract class AbstractScanningModuleRegistry
      * @param result the hash to add results to
      */
     protected static void addParsedModuleMetasFromJars(
-            List<JarFile>                 jars,
-            HashMap<String,ModuleMeta []> result )
+            List<JarFile>                     jars,
+            HashMap<String,MiniModuleMetaMap> result )
     {       
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
@@ -228,8 +266,8 @@ public abstract class AbstractScanningModuleRegistry
      * @param result the hash to add the results to
      */
     protected static void addParsedModuleMetasFromDirectories(
-            List<File>                    dirs,
-            HashMap<String,ModuleMeta []> result )
+            List<File>                        dirs,
+            HashMap<String,MiniModuleMetaMap> result )
     {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
@@ -623,30 +661,6 @@ public abstract class AbstractScanningModuleRegistry
     }
 
     /**
-     * Determine the key to be used into theMeta hash from a ModuleRequirement.
-     * 
-     * @param req the ModuleRequirement
-     * @return the key
-     */
-    protected static String determineModuleRequirementKey(
-            ModuleRequirement req )
-    {
-        return req.getRequiredModuleGroupId() + ":" + req.getRequiredModuleArtifactId();
-    }
-
-    /**
-     * Determine the key to be used into theMeta hash from a ModuleMeta.
-     * 
-     * @param meta the ModuleMeta
-     * @return the key
-     */
-    protected static String determineModuleMetaKey(
-            ModuleMeta meta )
-    {
-        return meta.getModuleGroupId() + ":" + meta.getModuleArtifactId();
-    }
-
-    /**
      * Helper method to compare two versions the way RPM does it.
      * Null comes first, then ordered by dot-separate 
      * 
@@ -804,10 +818,10 @@ public abstract class AbstractScanningModuleRegistry
     }
     
     /**
-     * The set of known ModuleMetas, keyed by groupid:artifactId. Multiple
-     * versions of the ModuleMeta are ordered with the newest first.
+     * The set of known ModuleMetas, keyed by artifactId and then by
+     * groupId. Multiple  versions of the ModuleMeta are ordered with the newest first.
      */
-    protected final HashMap<String,ModuleMeta[]> theMetas; 
+    protected final Map<String,MiniModuleMetaMap> theMetas;
     
     /**
      * Logger.
