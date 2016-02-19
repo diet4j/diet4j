@@ -208,20 +208,21 @@ public abstract class AbstractScanningModuleRegistry
 
         try {
             for( JarFile jarFile : jars ) {
+                JarEntry pomXmlEntry        = null;
+                JarEntry pomPropertiesEntry = null;
+                JarEntry manifestEntry      = null;
+                File     pomSibling         = null;
+
                 try {
                     String pomSiblingName = jarFile.getName();
-                    pomSiblingName = pomSiblingName.substring( 0, pomSiblingName.length()-3 ) + "pom";
-                    File pomSibling = new File( pomSiblingName );
+                    pomSiblingName        = pomSiblingName.substring( 0, pomSiblingName.length()-3 ) + "pom";
+                    pomSibling            = new File( pomSiblingName );
                     if( !pomSibling.canRead() ) {
                         pomSibling = null;
                     }
 
                     Stream<JarEntry> metaFiles = jarFile.stream().filter( f -> f.getName().startsWith( "META-INF/" ) );
                     // does not like to be processed twice, and doesn't like to be an iterable
-
-                    JarEntry pomXmlEntry        = null;
-                    JarEntry pomPropertiesEntry = null;
-                    JarEntry manifestEntry      = null;
 
                     Iterator<JarEntry> iter = metaFiles.iterator();
                     while( iter.hasNext() ) {
@@ -250,7 +251,22 @@ public abstract class AbstractScanningModuleRegistry
                         addModuleMeta( meta, result );
                     }
                 } catch( IOException|SAXException ex ) {
-                    log.log( Level.SEVERE, "Failed to read/parse file", ex );
+                    if( pomXmlEntry != null ) {
+                        if( pomSibling != null ) {
+                            log.log( Level.WARNING,
+                                     "Failed to read/parse either entry {0} in file {1} or POM file {2}",
+                                     new Object[]{ pomXmlEntry.getName(), jarFile.getName(), pomSibling.getAbsolutePath() });
+                        } else {
+                            log.log( Level.WARNING,
+                                     "Failed to read/parse entry {0} in file {1}",
+                                     new Object[]{ pomXmlEntry.getName(), jarFile.getName() });
+                        }
+                    } else if( pomSibling != null ) {
+                        log.log( Level.WARNING,
+                                 "Failed to read/parse POM file {0}", pomSibling.getAbsolutePath() );
+                    } else {
+                        log.log( Level.WARNING, "Failed to read/parse a file, but don't know which.", ex );
+                    }
                 }
             }
         } catch( ParserConfigurationException ex ) {
@@ -273,6 +289,7 @@ public abstract class AbstractScanningModuleRegistry
 
         try {
             for( File dir : dirs ) {
+                File currentlyParsing = null;
                 try {
                     Path dirPath = dir.toPath();
                     Stream<Path> metaFiles
@@ -286,10 +303,11 @@ public abstract class AbstractScanningModuleRegistry
                         String n = p.toString();
 
                         if( n.endsWith( "pom.xml" )) {
+                            currentlyParsing = new File( dir, n );
                             ModuleMeta meta = parseMetadataFiles(
                                     dbf,
                                     null,
-                                    new FileInputStream( new File( dir, n )),
+                                    new FileInputStream( currentlyParsing ),
                                     null,
                                     null,
                                     null );
@@ -299,7 +317,10 @@ public abstract class AbstractScanningModuleRegistry
                         }
                     }
                 } catch( IOException|SAXException ex ) {
-                    log.log( Level.SEVERE, "Failed to read/parse file", ex );
+                    log.log( Level.WARNING,
+                             "Failed to read/parse file "
+                                + ( currentlyParsing != null ? currentlyParsing.getAbsolutePath() : "?" ),
+                             ex );
                 }
             }
         } catch( ParserConfigurationException ex ) {
@@ -323,11 +344,11 @@ public abstract class AbstractScanningModuleRegistry
      */
     protected static ModuleMeta parseMetadataFiles(
             DocumentBuilderFactory dbf,
-            JarFile         jar,
-            InputStream     pomXmlEntryStream,
-            InputStream     pomPropertiesEntryStream,
-            InputStream     manifestEntryStream,
-            InputStream     pomFileStream )
+            JarFile                jar,
+            InputStream            pomXmlEntryStream,
+            InputStream            pomPropertiesEntryStream,
+            InputStream            manifestEntryStream,
+            InputStream            pomFileStream )
         throws
             ParserConfigurationException,
             IOException,
