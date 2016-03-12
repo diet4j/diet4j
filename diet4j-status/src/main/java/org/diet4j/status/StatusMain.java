@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.diet4j.core.Module;
 import org.diet4j.core.ModuleClassLoader;
 import org.diet4j.core.ModuleMeta;
@@ -56,12 +57,11 @@ public class StatusMain
             if( arg.startsWith( "-" )) {
                 if( flag != null ) {
                     flags.put( flag, NOARG );
+                }
+                if( arg.startsWith( "--")) {
+                    flag = arg.substring( 2 );
                 } else {
-                    if( arg.startsWith( "--")) {
-                        flag = arg.substring( 2 );
-                    } else {
-                        flag = arg.substring( 1 );
-                    }
+                    flag = arg.substring( 1 );
                 }
             } else {
                 if( flag != null ) {
@@ -76,6 +76,8 @@ public class StatusMain
         if( flag != null ) {
             flags.put( flag, NOARG );
         }
+System.err.println( "Flags: " + flags.keySet().stream().collect( Collectors.joining( " " ) ));
+
         if( flags.remove( "h" ) != null || flags.remove( "help" ) != null ) {
             synopsis();
             return;
@@ -94,7 +96,10 @@ public class StatusMain
             
         } else if( module != null ) {
             try {
-                showModule( module, flags.remove( "r" ) != null || flags.remove( "recursive" ) != null );
+                showModule(
+                        module,
+                        flags.remove( "r" ) != null || flags.remove( "recursive" ) != null,
+                        flags.remove( "v" ) != null || flags.remove( "verbose" ) != null );
 
             } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
                 log.severe( ex.getLocalizedMessage() );
@@ -159,6 +164,7 @@ public class StatusMain
      * 
      * @param name the name of the Module
      * @param recursive if true, also recursively show all dependencies
+     * @param verbose if true, show more detail
      * 
      * @throws ModuleNotFoundException thrown if a needed Module could not be found
      * @throws ModuleResolutionException thrown if a needed Module could not be resolved
@@ -166,12 +172,15 @@ public class StatusMain
      */
     public static void showModule(
             String  name,
-            boolean recursive )
+            boolean recursive,
+            boolean verbose )
         throws
             ModuleNotFoundException,
             ModuleResolutionException,
             ParseException
     {
+System.err.println( "showModule with recursive " + recursive + " verbose " + verbose );
+
         ModuleRegistry registry = findRegistry();
 
         // find and resolve the main module
@@ -192,7 +201,7 @@ public class StatusMain
 
         Module module = registry.resolve( moduleMetas[0] );
         
-        showModule( module, 0, recursive, System.err );
+        showModule( module, 0, recursive, verbose, System.err );
     }
     
     /**
@@ -201,27 +210,33 @@ public class StatusMain
      * @param mod the Module
      * @param indent how many levels of indent
      * @param recursive if true, show dependent modules as well
+     * @param verbose if true, show more detail
      * @param out the stream to print to
      */
     protected static void showModule(
             Module      mod,
             int         indent,
             boolean     recursive,
+            boolean     verbose,
             PrintStream out )
     {
-        StringBuilder indentString = new StringBuilder();
         for( int i=0 ; i<indent ; ++i ) {
-            indentString.append( "   " );
+            out.print( "    " );
         }
-        out.print( indentString );
         if( mod != null ) {
-            out.println( mod.toString() );
+            out.print( mod.toString() );
+            if( verbose ) {
+                out.print( " (" );
+                out.print( mod.getModuleMeta().getProvidesJar().getName());
+                out.print( ")" );
+            }
+            out.println();
 
             if( recursive ) {
                 Module [] dependencies = mod.determineDependencies();
 
                 for( Module dep : dependencies ) {
-                    showModule( dep, indent+1, recursive, out );
+                    showModule( dep, indent+1, recursive, verbose, out );
                 }
             }
         } else {
@@ -236,9 +251,9 @@ public class StatusMain
     public static void synopsis()
     {
         System.out.println( "Synopsis:" );
-        System.out.println( "    --module <module> [--recursive]: display information about the named Module" );
-        System.out.println( "    --showmoduleregistry:            show all known Modules" );
-        System.out.println( "    --help:                          this message" );
+        System.out.println( "    --module <module> [--recursive][--verbose] display information about the named Module" );
+        System.out.println( "    --showmoduleregistry                       show all known Modules" );
+        System.out.println( "    --help                                     this message" );
     }
     
     /**
