@@ -76,7 +76,6 @@ public class StatusMain
         if( flag != null ) {
             flags.put( flag, NOARG );
         }
-System.err.println( "Flags: " + flags.keySet().stream().collect( Collectors.joining( " " ) ));
 
         if( flags.remove( "h" ) != null || flags.remove( "help" ) != null ) {
             synopsis();
@@ -179,8 +178,6 @@ System.err.println( "Flags: " + flags.keySet().stream().collect( Collectors.join
             ModuleResolutionException,
             ParseException
     {
-System.err.println( "showModule with recursive " + recursive + " verbose " + verbose );
-
         ModuleRegistry registry = findRegistry();
 
         // find and resolve the main module
