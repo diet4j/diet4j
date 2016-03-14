@@ -39,6 +39,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -92,40 +93,13 @@ public abstract class AbstractScanningModuleRegistry
             if( found2 == null ) {
                 return new ModuleMeta[0];
             }
+            return req.findVersionMatchesFrom( found2 );
 
-            String version = req.getRequiredModuleVersion();
-            if( version != null ) {
-                for( ModuleMeta current : found2 ) {
-                    if( version.equals( current.getModuleVersion() )) {
-                        return new ModuleMeta[] { current };
-                    }
-                }
-                return new ModuleMeta[0];
-            } else {
-                return found2;
-            }
         } else {
             // no groupId was specified
             ModuleMeta [] found2 = found1.allValues();
             
-            String version = req.getRequiredModuleVersion();
-            if( version != null ) {
-                int count=0;
-                for( int i=0 ; i<found2.length ; ++i ) {
-                    if( version.equals( found2[i].getModuleVersion() )) {
-                        found2[count++] = found2[i];
-                    }
-                }
-                if( count < found2.length ) {
-                    ModuleMeta [] ret = new ModuleMeta[ count ];
-                    System.arraycopy( found2, 0, ret, 0, count);
-                    return ret;
-                } else {
-                    return found2;
-                }
-            } else {
-                return found2;
-            }
+            return req.findVersionMatchesFrom( found2 );
         }
     }
 
@@ -191,6 +165,20 @@ public abstract class AbstractScanningModuleRegistry
     public Set<String> nameSet()
     {
         return theMetas.keySet();
+    }
+
+    /**
+     * Obtain the set of Module names currently contained in the registry that match a
+     * naming pattern.
+     * 
+     * @param regex the regular expression
+     * @return the set of Module names
+     */
+    @Override
+    public Set<String> nameSet(
+            Pattern regex )
+    {
+        return theMetas.keySet().stream().filter( x -> regex.matcher( x ).matches() ).collect( Collectors.toSet() );
     }
 
     /**
@@ -593,7 +581,7 @@ public abstract class AbstractScanningModuleRegistry
             for( int i=0 ; i<runTime.length ; ++i ) {
                 ModuleRequirement current  = runTimeRequirements.get( i );
                 String            groupId  = current.getRequiredModuleGroupId();
-                String            version  = current.getRequiredModuleVersion();
+                String            version  = current.getUninterpretedRequiredModuleVersion();
                 String            groupId2 = replaceProperties( pomProperties, groupId );
                 String            version2 = version != null ? replaceProperties( pomProperties, version ) : null;
 

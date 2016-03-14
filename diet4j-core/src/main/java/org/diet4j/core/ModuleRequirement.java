@@ -21,6 +21,8 @@ package org.diet4j.core;
 
 import java.io.Serializable;
 import java.text.ParseException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This collects all information needed to find a Module.
@@ -141,9 +143,9 @@ public class ModuleRequirement
         }
         theRequiredModuleGroupId    = requiredModuleGroupId;
         theRequiredModuleArtifactId = requiredModuleArtifactId;
-        theRequiredModuleVersion    = requiredModuleVersion;
         theIsOptional               = isOptional;
-        
+
+        parseAndSetMinMaxVersions( requiredModuleVersion );
     }
 
     /**
@@ -167,13 +169,14 @@ public class ModuleRequirement
     }
 
     /**
-     * Obtain the version of the Module that we require.
+     * Obtain  the version of the Module that we require. This returns the
+     * uninterpreted version string.
      *
      * @return the version of the Module that we require
      */
-    public final String getRequiredModuleVersion()
+    public final String getUninterpretedRequiredModuleVersion()
     {
-        return theRequiredModuleVersion;
+        return theUninterpretedRequiredModuleVersion;
     }
 
     /**
@@ -201,10 +204,290 @@ public class ModuleRequirement
         if( !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) ) {
             return false;
         }
-        if( theRequiredModuleVersion == null ) {
+        return matchesVersionRequirement( candidate.getModuleVersion() );
+    }
+
+    /**
+     * Given an ordered set of ModuleMetas, find the matching versions.
+     * 
+     * @param candidates the ModuleMeta candidates
+     * @return the matched ModuleMetas
+     */
+    public ModuleMeta [] findVersionMatchesFrom(
+            ModuleMeta [] candidates )
+    {
+        ModuleMeta [] ret = new ModuleMeta[ candidates.length ];
+
+        int count = 0;
+        for( int i=0 ; i<candidates.length ; ++i ) {
+            if( matches( candidates[i] )) {
+                ret[count++] = candidates[i];
+            }
+        }
+        if( count < ret.length ) {
+            ModuleMeta [] tmp = new ModuleMeta[count];
+            System.arraycopy( ret, 0, tmp, 0, count );
+            ret = tmp;
+        }
+        return ret;
+    }
+    
+    /**
+     * Determine whether the provided version String matches the version requirement
+     * in this ModuleRequirement.
+     * 
+     * @param version the version string
+     * @return true or false
+     */
+    public boolean matchesVersionRequirement(
+            String version )
+    {
+        // for speed purposes, get exact min version requirement out of the way
+        if( theMinRequiredModuleVersionIsInclusive && version != null && version.equals( theMaxRequiredModuleVersion )) {
             return true;
         }
-        return theRequiredModuleVersion.equals( candidate.getModuleVersion() );
+        
+        ensureVersionsParsed();
+        
+        Object [][] parsedVersion = parseVersion( version );
+
+        if( theParsedMinRequiredModuleVersion != null ) {
+            int comp = compareParsedVersions( theParsedMinRequiredModuleVersion, parsedVersion );
+            if( comp > 0 ) {
+                return false;
+            }
+            if( comp == 0 && !theMinRequiredModuleVersionIsInclusive ) {
+                return false;
+            }
+        }
+ 
+        if( theParsedMaxRequiredModuleVersion != null ) {
+            int comp = compareParsedVersions( theParsedMaxRequiredModuleVersion, parsedVersion );
+            if( comp < 0 ) {
+                return false;
+            }
+            if( comp == 0 && !theMaxRequiredModuleVersionIsInclusive ) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Compare two parsed versions.
+     * 
+     * @param a the first parsed version
+     * @param b the second parsed version
+     * @return -1, 0 or 1 like strcmp()
+     */
+    protected int compareParsedVersions(
+            Object [][] a,
+            Object [][] b )
+    {
+        int max = Math.min( a.length, b.length );
+        for( int i=0 ; i<max ; ++i ) {
+            if( a[i] != null ) {
+                if( b[i] != null ) {
+                    int found = compareParsedVersionParts( a[i], b[i] );
+                    if( found != 0 ) {
+                        return found;
+                    }
+                } else {
+                    return 1;
+                }
+            } else {
+                if( b[i] != null ) {
+                    return -1;
+                    
+                } else {
+                    // do nothing; should not really occur
+                }
+            }
+        }
+        if( a.length > max ) {
+            return 1;
+        } else {
+            return -1;
+        }
+    }
+
+    /**
+     * Helper method to compare version parts.
+     * 
+     * @param a first version part
+     * @param b second version part
+     * @return -1, 0 or 1 like strcmp()
+     */
+    protected int compareParsedVersionParts(
+            Object [] a,
+            Object [] b )
+    {
+        int max = Math.min( a.length, b.length );
+        while( max > 0 && a[max-1] == null && b[max-1] == null ) {
+            --max;
+        }
+        if( max == 0 ) {
+            return 0;
+        }
+        for( int i=0 ; i<max ; ++i ) {
+            if( a[i] != null ) {
+                if( b[i] != null ) {
+                    if( a[i] instanceof String ) {
+                        if( b[i] instanceof String ) {
+                            int found = ((String)a[i]).compareTo( (String)b[i] );
+                            if( found != 0 ) {
+                                return found;
+                            }
+                        } else {
+                            return 1; // int before string
+                        }
+                    } else {
+                        if( b[i] instanceof String ) {
+                            return -1; // int before string
+                        } else {
+                            int found = ((Long)a[i]).compareTo( (Long)b[i] );
+                            if( found != 0 ) {
+                                return found;
+                            }
+                        }
+                    }
+                } else {
+                    return 1;
+                }
+            } else {
+                if( b[i] != null ) {
+                    return -1;
+                    
+                } else {
+                    return 0;
+                }
+            }
+        }
+        
+        if( a.length > max ) {
+            if( a[max] != null ) {
+                return 1; // so b[max] must not exist or be null
+            } else {
+                return -1;
+            }
+        } else {
+            if( b[max] != null ) {
+                return -1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
+    /**
+     * Parse a version string, and set the properties on this instance accordingly.
+     * 
+     * @param s the version string
+     */
+    protected void parseAndSetMinMaxVersions(
+            String s )
+    {
+        theUninterpretedRequiredModuleVersion = s;
+
+        theParsedMinRequiredModuleVersion = null;
+        theParsedMaxRequiredModuleVersion = null;
+
+        if( s == null ) {
+            theMinRequiredModuleVersion = null;
+            theMaxRequiredModuleVersion = null;
+            theMinRequiredModuleVersionIsInclusive = true;
+            theMaxRequiredModuleVersionIsInclusive = true;
+        } else {
+            Matcher m = MAVEN_VERSION_REGEX.matcher( s );
+            if( m.matches() ) {
+                theMinRequiredModuleVersion = m.group( 2 );
+                theMaxRequiredModuleVersion = m.group( 3 );
+                theMinRequiredModuleVersionIsInclusive = "[".equals( m.group( 1 ));
+                theMaxRequiredModuleVersionIsInclusive = "]".equals( m.group( 4 ));
+            } else {
+                theMinRequiredModuleVersion = s;
+                theMaxRequiredModuleVersion = null;
+                theMinRequiredModuleVersionIsInclusive = true;
+                theMaxRequiredModuleVersionIsInclusive = true;
+            }
+        }
+    }
+
+    /**
+     * Ensure that the min and max versions have been parsed.
+     */
+    protected synchronized void ensureVersionsParsed()
+    {
+        if( theMinRequiredModuleVersion != null ) {
+            if( theParsedMinRequiredModuleVersion == null ) {
+                theParsedMinRequiredModuleVersion = parseVersion( theMinRequiredModuleVersion );
+            }
+        } else {
+            theParsedMinRequiredModuleVersion = null;
+        }
+        if( theMaxRequiredModuleVersion != null ) {
+            if( theParsedMaxRequiredModuleVersion == null ) {
+                theParsedMaxRequiredModuleVersion = parseVersion( theMaxRequiredModuleVersion );
+            }
+        } else {
+            theParsedMaxRequiredModuleVersion = null;
+        }        
+    }
+
+    /**
+     * Take a version string and parse it into its components.
+     * 
+     * @param v the version string
+     * @return the components, left to right
+     */
+    protected Object [][] parseVersion(
+            String v )
+    {
+        String []   major = v.split( "." );
+        Object [][] ret   = new Object[ major.length ][];
+        
+        for( int i=0 ; i<major.length ; ++i ) {
+            ret[i] = new Object[ major[i].length() ]; // over-allocated
+            
+            int count = 0;
+
+            StringBuilder currentString = null; // once non-null, we know we are parsing a string
+            long          currentLong   = -1;
+
+            for( int j=0 ; j<major[i].length() ; ++j ) {
+                char c = major[i].charAt( j );
+                if( Character.isDigit( c )) {
+                    if( currentString != null ) {
+                        ret[i][count++] = currentString.toString();
+                        currentString = null;
+                        
+                        currentLong = Character.digit( c, 10 );
+                    } else {
+                        if( currentLong == -1 ) {
+                            currentLong = Character.digit( c, 10 );
+                        } else {
+                            currentLong = currentLong * 10 + Character.digit( c, 10 );
+                        }
+                    }
+                } else {
+                    if( currentString != null ) {
+                        currentString.append( c );
+                    } else {
+                        currentString = new StringBuilder();
+                        currentString.append( c );
+                        ret[i][count++] = currentLong;
+                        currentLong = -1;
+                    }
+                }
+            }
+            if( currentString != null ) {
+                ret[i][count++] = currentString.toString();
+            } else if( currentLong != -1 ) {
+                ret[i][count++] = currentLong;
+            }
+        }
+        return ret;
     }
 
     /**
@@ -222,8 +505,29 @@ public class ModuleRequirement
         buf.append( ":" );
         buf.append( theRequiredModuleArtifactId );
         buf.append( ":" );
-        if( theRequiredModuleVersion != null ) {
-            buf.append( theRequiredModuleVersion );
+        if( theMinRequiredModuleVersion != null && theMinRequiredModuleVersionIsInclusive && theMaxRequiredModuleVersion == null ) {
+            // short representation
+            buf.append( theMinRequiredModuleVersion );
+
+        } else if( theMinRequiredModuleVersion != null || theMaxRequiredModuleVersion != null ) {
+            // interval representation
+            if( theMinRequiredModuleVersionIsInclusive ) {
+                buf.append( "[" );
+            } else {
+                buf.append( "(" );
+            }
+            if( theMinRequiredModuleVersion != null ) {
+                buf.append( theMinRequiredModuleVersion );
+            }
+            buf.append( "," );
+            if( theMaxRequiredModuleVersion != null ) {
+                buf.append( theMaxRequiredModuleVersion );
+            }
+            if( theMaxRequiredModuleVersionIsInclusive ) {
+                buf.append( "]" );
+            } else {
+                buf.append( ")" );
+            }
         }
         return buf.toString();
     }
@@ -239,12 +543,50 @@ public class ModuleRequirement
     protected String theRequiredModuleArtifactId;
 
     /**
-     * The version of the required Module.
+     * The uninterpreted version string of the ModuleRequirement.
      */
-    protected String theRequiredModuleVersion;
+    protected String theUninterpretedRequiredModuleVersion;
+
+    /**
+     * The minimum version of the required Module.
+     */
+    protected String theMinRequiredModuleVersion;
+
+    /**
+     * Is the minimum version inclusive.
+     */
+    protected boolean theMinRequiredModuleVersionIsInclusive;
+
+    /**
+     * Parsed form of the minimum version of the required Module.
+     * Calculated on demand.
+     */
+    protected Object [][] theParsedMinRequiredModuleVersion;
+
+    /**
+     * The maximum version of the required Module.
+     */
+    protected String theMaxRequiredModuleVersion;
+
+    /**
+     * Is the maximum version inclusive.
+     */
+    protected boolean theMaxRequiredModuleVersionIsInclusive;
+
+    /**
+     * Parsed form of the maximum version of the required Module.
+     * Calculated on demand.
+     */
+    protected Object [][] theParsedMaxRequiredModuleVersion;
 
     /**
      * Is this dependency optional.
      */
     protected boolean theIsOptional;
+    
+    /**
+     * The regex defining Maven version expressions.
+     */
+    public static Pattern MAVEN_VERSION_REGEX = Pattern.compile(
+            "([\\[\\(])([^,\\[\\]\\(\\)]*),([^,\\[\\]\\(\\)]*)(\\]\\))" );
 }

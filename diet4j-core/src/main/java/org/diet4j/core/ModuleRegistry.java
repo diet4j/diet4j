@@ -20,6 +20,7 @@
 package org.diet4j.core;
 
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * A ModuleRegistry is a place where Modules can be found and resolved.
@@ -148,6 +149,16 @@ public abstract class ModuleRegistry
      * @return the set of Module names
      */
     public abstract Set<String> nameSet();
+
+    /**
+     * Obtain the set of Module names currently contained in the registry that match a
+     * naming pattern.
+     * 
+     * @param regex the regular expression
+     * @return the set of Module names
+     */
+    public abstract Set<String> nameSet(
+            Pattern regex );
 
     /**
      * Add a ModuleRegistry listener to be notified when new Modules become available etc.

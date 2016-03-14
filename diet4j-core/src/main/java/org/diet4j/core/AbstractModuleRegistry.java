@@ -209,6 +209,7 @@ public abstract class AbstractModuleRegistry
      * @param parentClassLoader the ClassLoader to use as the parent ClassLoader
      * @return the ClassLoader to use with the Module
      */
+    @Override
     protected ClassLoader createClassLoader(
             Module      module,
             ClassLoader parentClassLoader )
@@ -242,7 +243,7 @@ public abstract class AbstractModuleRegistry
             ModuleRegistryListener newListener )
     {
         if( theModuleRegistryListeners == null ) {
-            theModuleRegistryListeners = new ArrayList<ModuleRegistryListener>();
+            theModuleRegistryListeners = new ArrayList<>();
         }
         theModuleRegistryListeners.add( newListener );
     }
@@ -270,7 +271,7 @@ public abstract class AbstractModuleRegistry
             if( theModuleRegistryListeners == null || theModuleRegistryListeners.isEmpty() ) {
                 return;
             }
-            theIter = ( new ArrayList<ModuleRegistryListener>( theModuleRegistryListeners )).iterator();
+            theIter = ( new ArrayList<>( theModuleRegistryListeners )).iterator();
         }
 
         while( theIter.hasNext() ) {
@@ -293,7 +294,7 @@ public abstract class AbstractModuleRegistry
     /**
      * The set of currently available Modules, keyed by ModuleMeta.
      */
-    private final HashMap<ModuleMeta,Module> theModules = new HashMap<ModuleMeta,Module>();
+    private final HashMap<ModuleMeta,Module> theModules = new HashMap<>();
 
     /**
      * This maps from Module to Module[], reflecting the dependency of one
@@ -303,14 +304,14 @@ public abstract class AbstractModuleRegistry
      * The sequence of the items in the Module[] is the same as the sequence
      * of the items in the ModuleMeta's ModuleRequirements array.
      */
-    private final HashMap<Module,Module[]> theForwardDependencies = new HashMap<Module,Module[]>();
+    private final HashMap<Module,Module[]> theForwardDependencies = new HashMap<>();
 
     /**
      * This maps from Module to Module[], reflecting the use of one Module
      * by a set of others. This is the inverse relationship of what is
      * captured in theForwardDependencies.
      */
-    private final HashMap<Module,Module[]> theUses = new HashMap<Module,Module[]>();
+    private final HashMap<Module,Module[]> theUses = new HashMap<>();
 
     /**
      * The set of currently subscribed ModuleRegistryListeners. Allocated as needed.

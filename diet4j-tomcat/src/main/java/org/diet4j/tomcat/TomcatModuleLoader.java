@@ -30,6 +30,7 @@ import org.diet4j.core.Module;
 import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
+import org.diet4j.core.ModuleResolutionException;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
 
 /**
@@ -134,9 +135,6 @@ public class TomcatModuleLoader
         if( theRootmodule == null ) {
             throw new LifecycleException( "rootmodule parameter not set" );
         }
-        if( theModuledirectory == null ) {
-            throw new LifecycleException( "moduledirectory parameter not set" );
-        }
 
         Map<File,String> dirs = new HashMap<>();
         for( String dir : theModuledirectory.split( File.pathSeparator )) {
@@ -170,6 +168,28 @@ public class TomcatModuleLoader
             foundRootModule.activateRecursively();
                     // may throw an exception
 
+        } catch( ModuleResolutionException ex ) {
+            // construct a readable error message
+            StringBuilder msg    = new StringBuilder();
+            StringBuilder indent = new StringBuilder();
+
+            msg.append( "diet4j initialization failed. Cannot resolve requirement " );
+            for( Throwable current = ex ; current != null ; current = current.getCause() ) {
+                msg.append( indent );
+
+                if( current instanceof ModuleResolutionException ) {
+                    msg.append( ((ModuleResolutionException)current).getModuleRequirement().toString() );
+                } else {
+                    msg.append( ex.getMessage() );
+                }
+                if( indent.length() == 0 ) {
+                    indent.append( "\ndepending on:  " );
+                } else {
+                    indent.append( "  " );
+                }
+            }
+            
+            throw new LifecycleException( msg.toString() );
         } catch( Throwable ex ) {
             throw new LifecycleException( ex );
         }
@@ -207,7 +227,7 @@ public class TomcatModuleLoader
     /**
      * Directory in which the module JARs can be found.
      */
-    protected String theModuledirectory;
+    protected String theModuledirectory = DEFAULT_MODULEDIRECTORY;
  
     /**
      * Keep a reference to the ModuleRegistries that we are using so they won't be garbage collected.
@@ -215,6 +235,7 @@ public class TomcatModuleLoader
     protected ModuleRegistry theModuleRegistry;
     
     /**
-     * The default module directory.
+     * The default directory in which the module JARs can be found.
      */
+    public static final String DEFAULT_MODULEDIRECTORY = "/usr/lib/java";
 }

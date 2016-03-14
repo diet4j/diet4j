@@ -46,6 +46,16 @@ public class ModuleResolutionException
     }
 
     /**
+     * Obtain the ModuleRequirement that could not be met.
+     * 
+     * @return the ModuleRequirement
+     */
+    public ModuleRequirement getModuleRequirement()
+    {
+        return theRequirement;
+    }
+
+    /**
      * Returns the detail message string of this Throwable.
      *
      * @return  the detail message string of this <tt>Throwable</tt> instance
