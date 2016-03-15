@@ -107,6 +107,8 @@ public abstract class AbstractModuleRegistry
                         for( int j=0 ; j<dependAds.length ; ++j ) {
                             try {
                                 dependModule = resolve( dependAds[j], true );
+                                break; // found one that worked
+
                             } catch( ModuleResolutionException ex ) {
                                 if( !reqs[i].isOptional() ) {
                                     chained = ex;
