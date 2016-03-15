@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import org.diet4j.core.Module;
 import org.diet4j.core.ModuleClassLoader;
 import org.diet4j.core.ModuleMeta;
