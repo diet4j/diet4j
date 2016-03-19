@@ -23,14 +23,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.ParseException;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.diet4j.cmdline.CmdlineParameters.Parameter;
 import org.diet4j.core.Module;
 import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
+import org.diet4j.core.Version;
 
 /**
  * <p>Acts as the main() program in a diet4j-based application.
@@ -77,88 +79,45 @@ public abstract class CmdlineBootLoader
         throws
             IOException
     {
-        HashMap<File,String> dirs = new HashMap<>();
+        CmdlineParameters parameters = new CmdlineParameters(
+            new Parameter( "help",      0 ),
+            new Parameter( "directory", 1, true ),
+            new Parameter( "run",       1 ),
+            new Parameter( "method",    1 )
+        );
 
-        int i;
-        String flag = null;
-        for( i=0; i < args.length; ++i ) {
-            String arg = args[i];
-            if( flag == null ) {
-                if( arg.startsWith( "-" )) {
-                    if( arg.startsWith( "--")) {
-                        flag = arg.substring( 2 );
-                    } else {
-                        flag = arg.substring( 1 );
-                    }
-                } else {
-                    // root module
-                    try {
-                        theRootModuleRequirement = ModuleRequirement.parse( arg );
-                    } catch( ParseException ex ) {
-                        fatal( ex.getMessage() );
-                    }
-                    ++i; // so we are on the first argument
-                    break; // while loop
+        String [] remaining = parameters.parse( args );
+
+        if( parameters.containsKey( "help" )) {
+            helpAndQuit();
+        }
+
+        if( remaining.length < 1 ) {
+            fatal( "Must provide the name of one root module" );
+        }
+        try {
+            theRootModuleRequirement = ModuleRequirement.parse( remaining[0] );
+        } catch( ParseException ex ) {
+            fatal( ex.getLocalizedMessage() );
+        }
+
+        theRunArguments = new String[ remaining.length-1 ];
+        System.arraycopy( remaining, 1, theRunArguments, 0, theRunArguments.length );
+
+        String [] dirs = parameters.getMany( "directory" );
+        HashSet<File> fileDirs = new HashSet<>();
+        if( dirs != null ) {
+            for( String dir : dirs ) {
+                if( !fileDirs.add( new File( dir ).getCanonicalFile() )) {
+                    fatal( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + dir );
                 }
-            } else {
-                switch( flag ) {
-                    case "h":
-                    case "help":
-                        helpAndQuit();
-                        break;
-
-                    case "d":
-                    case "directory":
-                        try {
-                            File dir = new File( arg ).getCanonicalFile();
-                            if( dirs.put( dir, arg ) != null ) {
-                                fatal( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + arg );
-                            }
-                            flag = null;
-                        } catch( IOException ex ) {
-                            fatal( "Directory specified in moduledirectory parameter cannot be resolved into a canonical path: " + arg );
-                        }
-                        break;
-                    
-                    case "r":
-                    case "run":
-                        if( theRunClassName != null ) {
-                            fatal( "Do not specify more than one run-class" );
-                        }
-                        theRunClassName = arg;
-                        flag = null;
-                        break;
-
-                    case "m":
-                    case "method":
-                        if( theRunMethodName != null ) {
-                            fatal( "Do not specify more than one run-method" );
-                        }
-                        theRunMethodName = arg;
-                        flag = null;
-                        break;
-
-                    default:
-                        fatal( "Unknown parameter " + flag );
-                        break;
-                }
-            }            
+            }
         }
-        if( flag != null ) {
-            fatal( "No value provided for parameter " + flag );            
-        }
-        if( theRootModuleRequirement == null ) {
-            fatal( "Must provide the name of a root module" );
-        }
+        theModuleDirectories = new File[ fileDirs.size() ];
+        fileDirs.toArray( theModuleDirectories );
 
-        theModuleDirectories = new File[ dirs.size() ];
-        dirs.keySet().toArray( theModuleDirectories );
-
-        // the remaining arguments
-        theRunArguments = new String[ args.length - i ];
-        if( theRunArguments.length > 0 ) {
-            System.arraycopy( args, i, theRunArguments, 0, theRunArguments.length );
-        }
+        theRunClassName  = parameters.get( "run" );
+        theRunMethodName = parameters.get( "method" );
     }
 
     /**
@@ -177,7 +136,7 @@ public abstract class CmdlineBootLoader
             rootModuleMeta = registry.determineSingleResolutionCandidate( theRootModuleRequirement );
 
         } catch( Throwable ex ) {
-            log.log( Level.SEVERE, "Cannot find module " + theRootModuleRequirement, ex );
+            log.log( Level.SEVERE, "Cannot find module " + theRootModuleRequirement );
             return 1;
         }
 
@@ -225,7 +184,7 @@ public abstract class CmdlineBootLoader
     {
         PrintStream w = System.out;
         
-        w.println( "Synopsis:" );
+        w.println( "Synopsis: (diet4j-core version " + Version.VERSION + ")" );
         w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <rootmodule> [ <arg> ... ] " );
         w.println( "    where:" );
         w.println( "       <directory>:  directory in which to look for modules" );
@@ -275,6 +234,9 @@ public abstract class CmdlineBootLoader
      */
     protected static String [] theRunArguments;
 
+    /**
+     * 
+    */
     /**
      * Logger.
      */

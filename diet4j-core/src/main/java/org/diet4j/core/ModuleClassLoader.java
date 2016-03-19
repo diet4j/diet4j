@@ -29,8 +29,11 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.jar.Attributes;
+import java.util.jar.Attributes.Name;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -197,11 +200,37 @@ public class ModuleClassLoader
                     }
                 }
 
-                String path = name.replace('.', '/').concat(".class");
-                byte [] classBytes = findBlob( path );
-                if( classBytes != null && classBytes.length > 0 ) {
+                if( c == null ) {
+                    String   path  = name.replace('.', '/').concat(".class");
+                    JarFile  jar   = theModule.getModuleMeta().getProvidesJar();
+                    JarEntry entry = jar.getJarEntry( path );
+
                     try {
-                        c = defineClass( name, classBytes, 0, classBytes.length );
+                        byte [] classBytes = slurpJarEntry( jar, entry );
+                        if( classBytes != null && classBytes.length > 0 ) {
+                            // Define a Package if there is one
+                            int lastDot = name.lastIndexOf( '.' );
+                            if( lastDot != -1 ) {
+                                String pkgName = name.substring( 0, lastDot );
+
+                                URL      url = new URL( "file://" + jar.getName() );
+
+                                Manifest man = jar.getManifest();
+
+                                if( getAndVerifyPackage( pkgName, man, url ) == null ) {
+                                    if( man != null ) {
+                                        definePackage( pkgName, man, url );
+                                    } else {
+                                        definePackage( pkgName, null, null, null, null, null, null, null );
+                                    }
+                                }
+                            }
+
+                            c = defineClass( name, classBytes, 0, classBytes.length );
+
+                        }
+                    } catch( IOException ex ) {
+                        log.log( Level.WARNING, "Failed to read from Jar file " + jar, ex );
 
                     } catch( NoClassDefFoundWithClassLoaderError ex ) {
                         throw ex; // just rethrow
@@ -213,7 +242,7 @@ public class ModuleClassLoader
                         log.log( Level.SEVERE, "loadClassAttemptStart: " + this + " (" + name + ")", ex );
                     }
                 }
-                
+
                 if( c == null ) {
                     for( int i=0 ; i<theDependencyClassLoaders.length ; ++i ) {
                         if( theDependencyClassLoaders[i] != null ) {
@@ -280,81 +309,41 @@ public class ModuleClassLoader
     }
 
     /**
-     * Find a blob of data.
+     * Helper method to read a byte array from a JarEntry.
      *
-     * @param name the name of the resource
-     * @return the blob of data, as byte array, if found
-     */
-    protected synchronized byte [] findBlob(
-            String name )
-    {
-        JarFile jar = theModule.getModuleMeta().getProvidesJar();
-        try {
-            JarEntry entry = jar.getJarEntry( name );
-            if( entry != null ) {
-                InputStream stream = jar.getInputStream( entry );
-                if( stream != null ) {
-                    return slurp( stream, (int) entry.getSize(), -1 );
-                }
-            }
-
-        } catch( IOException ex ) {
-            // Files that don't have the requested resource throw this exception, so don't do anything
-        }
-        return null;
-    }
-
-    /**
-     * Helper method to read a byte array from a stream until EOF.
-     *
-     * @param inStream the stream to read from
-     * @param initial the initial size of the buffer
-     * @param maxBytes the maximum number of bytes we accept
+     * @param file the JarFile from which to read the JarEntry
+     * @param entry the JarEntry to read. If null, return null
      * @return the found byte array
      * @throws IOException thrown if an I/O error occurred
      */
-    protected static byte [] slurp(
-            InputStream inStream,
-            int         initial,
-            int         maxBytes )
+    protected static byte [] slurpJarEntry(
+            JarFile  file,
+            JarEntry entry )
         throws
             IOException
     {
-        int bufsize = 1024;
-        if( initial > 0 ) {
-            bufsize = initial;
+        if( entry == null ) {
+            return null;
         }
-        if( maxBytes > 0 && bufsize > maxBytes ) {
-            bufsize = maxBytes;
-        }
-        byte[] buf    = new byte[ bufsize ];
-        int    offset = 0;
 
-        while( true ) {
-            int toRead = buf.length;
-            if( maxBytes > 0 && maxBytes < toRead ) {
-                toRead = maxBytes;
-            }
-            int read = inStream.read( buf, offset, toRead  - offset);
+        InputStream inStream = file.getInputStream( entry );
+
+        byte [] buf    = new byte[ (int) entry.getSize() ];
+        int     offset = 0;
+
+        while( offset < buf.length ) {
+            int read = inStream.read( buf, offset, buf.length-offset );
+
             if( read <= 0 ) {
-                break;
+                log.log(
+                        Level.WARNING,
+                        "Attempted to read {0} bytes, but only read {1} from JarEntry {2} in {3}",
+                        new Object[] { buf.length, offset, entry, file.getName() } );
+                return null;
             }
             offset += read;
-            if( offset == buf.length ) {
-                byte [] temp = new byte[ buf.length * 2 ];
-                System.arraycopy( buf, 0, temp, 0, offset );
-                buf = temp;
-            }
         }
-        
-        // now chop if necessary
-        if( buf.length > offset ) {
-            byte [] temp = new byte[ offset ];
-            System.arraycopy( buf, 0, temp, 0, offset );
-            return temp;
-        } else {
-            return buf;
-        }
+        return buf;
     }
 
     /**
@@ -385,6 +374,129 @@ public class ModuleClassLoader
     }
 
     /**
+     * Verbatim copy from JDK's URLClassLoader.
+     *
+     * Retrieve the package using the specified package name.
+     * If non-null, verify the package using the specified code
+     * source and manifest.
+     */
+    private Package getAndVerifyPackage(
+            String   pkgname,
+            Manifest man,
+            URL      url )
+    {
+        Package pkg = getPackage(pkgname);
+        if (pkg != null) {
+            // Package found, so check package sealing.
+            if (pkg.isSealed()) {
+                // Verify that code source URL is the same.
+                if (!pkg.isSealed(url)) {
+                    throw new SecurityException(
+                        "sealing violation: package " + pkgname + " is sealed");
+                }
+
+            } else {
+                // Make sure we are not attempting to seal the package
+                // at this code source URL.
+                if ((man != null) && isSealed(pkgname, man)) {
+                    throw new SecurityException(
+                        "sealing violation: can't seal package " + pkgname +
+                        ": already loaded");
+                }
+            }
+        }
+        return pkg;
+    }
+
+    /*
+     * Verbatim copy from JDK's URLClassLoader.
+     *
+     * Returns true if the specified package name is sealed according to the
+     * given manifest.
+     */
+    private boolean isSealed(String name, Manifest man) {
+        String path = name.replace('.', '/').concat("/");
+        Attributes attr = man.getAttributes(path);
+        String sealed = null;
+        if (attr != null) {
+            sealed = attr.getValue(Attributes.Name.SEALED);
+        }
+        if (sealed == null) {
+            if ((attr = man.getMainAttributes()) != null) {
+                sealed = attr.getValue(Attributes.Name.SEALED);
+            }
+        }
+        return "true".equalsIgnoreCase(sealed);
+    }
+
+    /**
+     * Verbatim copy from JDK's URLClassLoader.
+     *
+     * Defines a new package by name in this ClassLoader. The attributes
+     * contained in the specified Manifest will be used to obtain package
+     * version and sealing information. For sealed packages, the additional
+     * URL specifies the code source URL from which the package was loaded.
+     *
+     * @param name  the package name
+     * @param man   the Manifest containing package version and sealing
+     *              information
+     * @param url   the code source url for the package, or null if none
+     * @exception   IllegalArgumentException if the package name duplicates
+     *              an existing package either in this class loader or one
+     *              of its ancestors
+     * @return the newly defined Package object
+     */
+    protected Package definePackage(String name, Manifest man, URL url)
+        throws IllegalArgumentException
+    {
+        String path = name.replace('.', '/').concat("/");
+        String specTitle = null, specVersion = null, specVendor = null;
+        String implTitle = null, implVersion = null, implVendor = null;
+        String sealed = null;
+        URL sealBase = null;
+
+        Attributes attr = man.getAttributes(path);
+        if (attr != null) {
+            specTitle   = attr.getValue(Name.SPECIFICATION_TITLE);
+            specVersion = attr.getValue(Name.SPECIFICATION_VERSION);
+            specVendor  = attr.getValue(Name.SPECIFICATION_VENDOR);
+            implTitle   = attr.getValue(Name.IMPLEMENTATION_TITLE);
+            implVersion = attr.getValue(Name.IMPLEMENTATION_VERSION);
+            implVendor  = attr.getValue(Name.IMPLEMENTATION_VENDOR);
+            sealed      = attr.getValue(Name.SEALED);
+        }
+        attr = man.getMainAttributes();
+        if (attr != null) {
+            if (specTitle == null) {
+                specTitle = attr.getValue(Name.SPECIFICATION_TITLE);
+            }
+            if (specVersion == null) {
+                specVersion = attr.getValue(Name.SPECIFICATION_VERSION);
+            }
+            if (specVendor == null) {
+                specVendor = attr.getValue(Name.SPECIFICATION_VENDOR);
+            }
+            if (implTitle == null) {
+                implTitle = attr.getValue(Name.IMPLEMENTATION_TITLE);
+            }
+            if (implVersion == null) {
+                implVersion = attr.getValue(Name.IMPLEMENTATION_VERSION);
+            }
+            if (implVendor == null) {
+                implVendor = attr.getValue(Name.IMPLEMENTATION_VENDOR);
+            }
+            if (sealed == null) {
+                sealed = attr.getValue(Name.SEALED);
+            }
+        }
+        if ("true".equalsIgnoreCase(sealed)) {
+            sealBase = url;
+        }
+        return definePackage(name, specTitle, specVersion, specVendor,
+                             implTitle, implVersion, implVendor, sealBase);
+    }
+
+    /**
      * The Module whose classes this ClassLoader is responsible for loading.
      */
     protected Module theModule;
@@ -403,7 +515,7 @@ public class ModuleClassLoader
      * This map maps names of resources that we know for sure we can't load to a
      * marker object, so we stop attempting to load here and not delegate.
      */
-    protected HashMap<String,Object> cannotFindTable = new HashMap<String,Object>( 20 );
+    protected HashMap<String,Object> cannotFindTable = new HashMap<>( 20 );
 
     /**
      * Marker object to be inserted into the cannotFindTable.

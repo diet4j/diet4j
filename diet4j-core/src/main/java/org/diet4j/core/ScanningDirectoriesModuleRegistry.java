@@ -74,9 +74,10 @@ public class ScanningDirectoriesModuleRegistry
                                 try {
                                     return new JarFile( f.toFile() );
                                 } catch( IOException ex ) {
-                                    log.log( Level.SEVERE, "Cannot access " + f.toString(), ex );
+                                    log.log( Level.SEVERE, "Cannot access {0}: {1}", new Object[]{ f.toString(), ex.getLocalizedMessage() });
                                     return null;
                                 }} )
+                        .filter( f-> ( f != null )) // happens if previous step returned null
                         .collect( Collectors.toList() );
                 jars.addAll( newJars );
 

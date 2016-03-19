@@ -48,7 +48,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 /**
  * Collections functionality common to ModuleRegistry implementations that determine the
@@ -242,18 +244,19 @@ public abstract class AbstractScanningModuleRegistry
                     if( pomXmlEntry != null ) {
                         if( pomSibling != null ) {
                             log.log( Level.WARNING,
-                                     "Failed to read/parse either entry {0} in file {1} or POM file {2}",
-                                     new Object[]{ pomXmlEntry.getName(), jarFile.getName(), pomSibling.getAbsolutePath() });
+                                     "Failed to read/parse either entry {0} in file {1} or POM file {2}: {3}",
+                                     new Object[] { pomXmlEntry.getName(), jarFile.getName(), pomSibling.getAbsolutePath(), ex.getMessage() });
                         } else {
                             log.log( Level.WARNING,
-                                     "Failed to read/parse entry {0} in file {1}",
-                                     new Object[]{ pomXmlEntry.getName(), jarFile.getName() });
+                                     "Failed to read/parse entry {0} in file {1}: {2}",
+                                     new Object[] { pomXmlEntry.getName(), jarFile.getName(), ex.getMessage() });
                         }
                     } else if( pomSibling != null ) {
                         log.log( Level.WARNING,
-                                 "Failed to read/parse POM file {0}", pomSibling.getAbsolutePath() );
+                                 "Failed to read/parse POM file {0}: {1}",
+                                 new Object[] { pomSibling.getAbsolutePath(), ex.getMessage() });
                     } else {
-                        log.log( Level.WARNING, "Failed to read/parse a file, but don't know which.", ex );
+                        log.log( Level.WARNING, "Failed to read/parse a file, but don't know which.", ex ); // not expected to happen
                     }
                 }
             }
@@ -357,6 +360,20 @@ public abstract class AbstractScanningModuleRegistry
 
         DocumentBuilder parser = dbf.newDocumentBuilder();
         Document        doc    = null;
+
+        // swallow everything, we get the exception anyway. If we don't set that error handler,
+        // some piece of code deep inside the JDK, in its wisdom, will print a "Fatal error"
+        // to stderr, having the guts to explain in a comment that this is a good thing because
+        // it addresses "the most frequent user complaint" with the parser.
+        parser.setErrorHandler( new ErrorHandler() {
+            @Override
+            public void fatalError( SAXParseException ex ) {}
+            @Override
+            public void error( SAXParseException ex ) {}
+            @Override
+            public void warning( SAXParseException ex ) {}
+        } );
+
         if( pomFileStream != null ) {
             try {
                 doc = parser.parse( pomFileStream );
@@ -370,8 +387,6 @@ public abstract class AbstractScanningModuleRegistry
             } catch( CharConversionException ex ) {
                 // happens when an XML document is in a weird character encoding, not something the parser can deal with
                 return null;
-                // doc = parser.parse( new ReaderInputStream( new InputStreamReader( jar.getInputStream( pomXmlEntry ), "ISO-8859" )), "UTF-8" );
-                // This misses ReaderInputStream, which is in Apache Commons IO
             }
         }
         if( doc == null ) {
