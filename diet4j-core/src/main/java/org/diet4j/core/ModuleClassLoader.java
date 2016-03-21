@@ -201,9 +201,11 @@ public class ModuleClassLoader
                 }
 
                 if( c == null ) {
-                    String   path  = name.replace('.', '/').concat(".class");
-                    JarFile  jar   = theModule.getModuleMeta().getProvidesJar();
-                    JarEntry entry = jar.getJarEntry( path );
+                    String  path  = name.replace('.', '/').concat(".class");
+                    ModuleMeta meta   = theModule.getModuleMeta();
+                    JarFile    jar    = meta.getProvidesJar();
+                    String     prefix = meta.getResourceJarEntryPrefix();
+                    JarEntry   entry  = jar.getJarEntry( prefix + path );
 
                     try {
                         byte [] classBytes = slurpJarEntry( jar, entry );
@@ -289,8 +291,10 @@ public class ModuleClassLoader
     public synchronized URL findResource(
             String name )
     {
-        JarFile  jar        = theModule.getModuleMeta().getProvidesJar();
-        JarEntry foundEntry = jar.getJarEntry( name );
+        ModuleMeta meta       = theModule.getModuleMeta();
+        JarFile    jar        = meta.getProvidesJar();
+        String     prefix     = meta.getResourceJarEntryPrefix();
+        JarEntry   foundEntry = jar.getJarEntry( prefix + name );
 
         if( foundEntry == null ) {
             return null;

@@ -67,6 +67,12 @@ public class ModuleMeta
         theModuleJar                   = moduleJar;
         theActivationClassName         = activationClassName;
         theRunClassName                = runClassName;
+
+        if( moduleJar.getName().endsWith( ".war" )) {
+            theResourceJarEntryPrefix = WAR_RESOURCE_JAR_ENTRY_PREFIX;
+        } else {
+            theResourceJarEntryPrefix = JAR_RESOURCE_JAR_ENTRY_PREFIX;
+        }
     }
 
     /**
@@ -115,7 +121,7 @@ public class ModuleMeta
                 String key2 = key1 + "." + loc.getLanguage();
                 if( loc.getVariant() != null ) {
                     String key3 = key2 + "." + loc.getVariant();
-            
+
                     ret = theModuleUserNames.get( key3 );
                 }
                 if( ret == null ) {
@@ -148,7 +154,7 @@ public class ModuleMeta
                 String key2 = key1 + "." + loc.getLanguage();
                 if( loc.getVariant() != null ) {
                     String key3 = key2 + "." + loc.getVariant();
-            
+
                     ret = theModuleUserDescriptions.get( key3 );
                 }
                 if( ret == null ) {
@@ -234,6 +240,17 @@ public class ModuleMeta
     }
 
     /**
+     * Obtain the relative path below which resources, such as a class files,
+     * are to be found. In a WAR file, for example, that would be "WEB-INF/classes/".
+     *
+     * @return the prefix
+     */
+    public final String getResourceJarEntryPrefix()
+    {
+        return theResourceJarEntryPrefix;
+    }
+
+    /**
      * Obtain the name of the Module activation/deactivation class.
      * If this returns null, it means the Module has no activation method.
      *
@@ -312,7 +329,7 @@ public class ModuleMeta
 
     /**
      * Obtain a String representation.
-     * 
+     *
      * @return String representation
      */
     @Override
@@ -371,6 +388,23 @@ public class ModuleMeta
      * The JAR that this Module provides.
      */
     protected JarFile theModuleJar;
+
+    /**
+     * The relative path below which resources, such as a class files,
+     * are to be found. Must be suitable for prepending without further processing,
+     * i.e. must end with slash unless at the root.
+     */
+    protected String theResourceJarEntryPrefix;
+
+    /**
+     * The resourceJarEntryPrefix for JAR files.
+     */
+    public static final String JAR_RESOURCE_JAR_ENTRY_PREFIX = "";
+
+    /**
+     * The resourceJarEntryPrefix for WAR files.
+     */
+    public static final String WAR_RESOURCE_JAR_ENTRY_PREFIX = "WEB-INF/classes/";
 
     /**
      * The name of the Module activation/deactivation class.

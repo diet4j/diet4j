@@ -184,7 +184,7 @@ public abstract class CmdlineBootLoader
     {
         PrintStream w = System.out;
         
-        w.println( "Synopsis: (diet4j-core version " + Version.VERSION + ")" );
+        w.println( "Synopsis: (diet4j-core " + Version.VERSION + ", built " + Version.BUILDTIME + ")" );
         w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <rootmodule> [ <arg> ... ] " );
         w.println( "    where:" );
         w.println( "       <directory>:  directory in which to look for modules" );

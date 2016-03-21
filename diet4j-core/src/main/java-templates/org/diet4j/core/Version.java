@@ -24,5 +24,6 @@ package org.diet4j.core;
  */
 public final class Version
 {
-    public static final String VERSION = "${project.version}";
+    public static final String VERSION   = "${project.version}";
+    public static final String BUILDTIME = "${build.timestamp}";
 }
