@@ -55,6 +55,21 @@ public class ModuleActivationException
     }
 
     /**
+      * Constructor.
+      *
+      * @param meta the ModuleMeta for the Module whose activation failed.
+      * @param msg a message explaining the cause of this ModuleActivationException
+      * @param org the Throwable that was the cause of this ModuleActivationException
+      */
+    public ModuleActivationException(
+            ModuleMeta meta,
+            String     msg,
+            Throwable  org )
+    {
+        super( meta, msg, org );
+    }
+
+    /**
      * For debugging.
      *
      * @return a string representation of this object

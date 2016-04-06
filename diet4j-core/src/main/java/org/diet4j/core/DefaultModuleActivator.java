@@ -28,15 +28,15 @@ import java.util.logging.Logger;
  * This is the default implementation of ModuleActivator. If an activation class
  * was provided for the Module, it looks for static methods 'moduleActivate' and 'moduleDeactivate'
  * in this class. If they exist, they will be invoked when the Module is activated or deactivated.
- * 
+ *
  * The methods must have the following signature:
- * 
+ *
  * <pre>
  * public static void moduleActivate(
- *         Module thisModule  );
- * 
+ *         Module thisModule );
+ *
  * public static void moduleDeactivate(
- *         Module thisModule  );
+ *         Module thisModule );
  * </pre>
  */
 public class DefaultModuleActivator
@@ -77,7 +77,7 @@ public class DefaultModuleActivator
             ModuleActivationException
     {
         ModuleMeta meta = theModule.getModuleMeta();
-        
+
         String activationClassName = meta.getActivationClassName();
         if( activationClassName == null ) {
             return null;
@@ -105,6 +105,9 @@ public class DefaultModuleActivator
 
             return ret;
 
+        } catch( NoSuchMethodException ex ) {
+            log.log( Level.FINER, "moduleActivate no activation method: " + theModule, ex );
+
         } catch( InvocationTargetException ex ) {
             log.log( Level.FINE, "moduleActivateFailed: " + theModule, ex.getTargetException() );
 
@@ -116,7 +119,7 @@ public class DefaultModuleActivator
 
         } catch( Throwable ex ) {
             log.log( Level.FINE, "moduleActivateFailed: " + theModule, ex );
-            throw new ModuleActivationException( meta, ex );        
+            throw new ModuleActivationException( meta, ex );
         }
     }
 
@@ -131,7 +134,7 @@ public class DefaultModuleActivator
             ModuleDeactivationException
     {
         ModuleMeta meta = theModule.getModuleMeta();
-        
+
         String deactivationClassName  = meta.getActivationClassName();
         if( deactivationClassName == null ) {
             return;
@@ -141,7 +144,7 @@ public class DefaultModuleActivator
             log.log( Level.FINER, "moduleDeactivateStarted: {0}", theModule );
 
             Class<?> deactivationClass = Class.forName( deactivationClassName, true, theModule.getClassLoader() );
-        
+
             Method deactivationMethod = deactivationClass.getMethod(
                     DEACTIVATION_METHOD_NAME,
                     new Class[] { Module.class } );
@@ -153,6 +156,9 @@ public class DefaultModuleActivator
                     new Object[] { theModule } );
 
             log.log( Level.FINER, "moduleDeactivateSucceeded: {0}", theModule );
+
+        } catch( NoSuchMethodException ex ) {
+            log.log( Level.FINER, "moduleDeactivate no deactivation method: " + theModule, ex );
 
         } catch( InvocationTargetException ex ) {
             log.log( Level.FINE, "moduleDeactivateFailed: " + theModule, ex.getTargetException() );
@@ -198,7 +204,7 @@ public class DefaultModuleActivator
      * Name of the deactivation method in the ModuleInit class.
      */
     public static final String DEACTIVATION_METHOD_NAME = "moduleDeactivate";
-    
+
     /**
      * Logger.
      */
