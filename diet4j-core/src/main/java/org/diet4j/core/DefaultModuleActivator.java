@@ -108,6 +108,8 @@ public class DefaultModuleActivator
         } catch( NoSuchMethodException ex ) {
             log.log( Level.FINER, "moduleActivate no activation method: " + theModule, ex );
 
+            return null;
+
         } catch( InvocationTargetException ex ) {
             log.log( Level.FINE, "moduleActivateFailed: " + theModule, ex.getTargetException() );
 
