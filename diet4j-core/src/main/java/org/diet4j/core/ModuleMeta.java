@@ -38,7 +38,7 @@ public class ModuleMeta
       * @param moduleUserDescriptions the description shown to the user of the to-be-created Module, keyed by the locale
       * @param moduleBuildDate the time when this Module was built
       * @param license the license for the to-be-created Module
-      * @param runTimeModuleRequirements the ModuleRequirements of this Module at run time
+      * @param runtimeModuleRequirements the ModuleRequirements of this Module at run time
       * @param moduleJar JAR file provided by this Module
       * @param activationClassName name of the Module's activation/deactivation class, or null
       * @param runClassName name of the class contained in this Module that contains the Module's run method, or null
@@ -51,7 +51,7 @@ public class ModuleMeta
             Map<String,String>   moduleUserDescriptions,
             long                 moduleBuildDate,
             ModuleLicense        license,
-            ModuleRequirement [] runTimeModuleRequirements,
+            ModuleRequirement [] runtimeModuleRequirements,
             JarFile              moduleJar,
             String               activationClassName,
             String               runClassName )
@@ -63,12 +63,14 @@ public class ModuleMeta
         theModuleUserDescriptions      = moduleUserDescriptions;
         theModuleBuildDate             = moduleBuildDate;
         theModuleLicense               = license;
-        theRunTimeModuleRequirements   = runTimeModuleRequirements;
+        theRuntimeModuleRequirements   = runtimeModuleRequirements;
         theModuleJar                   = moduleJar;
         theActivationClassName         = activationClassName;
         theRunClassName                = runClassName;
 
-        if( moduleJar.getName().endsWith( ".war" )) {
+        if( moduleJar == null ) {
+            theResourceJarEntryPrefix = UNPACKED_RESOURCE_JAR_ENTRY_PREFIX;
+        } else if( moduleJar.getName().endsWith( ".war" )) {
             theResourceJarEntryPrefix = WAR_RESOURCE_JAR_ENTRY_PREFIX;
         } else {
             theResourceJarEntryPrefix = JAR_RESOURCE_JAR_ENTRY_PREFIX;
@@ -224,9 +226,9 @@ public class ModuleMeta
      *
      * @return the list of ModuleRequirements of this Module at run time
      */
-    public final ModuleRequirement [] getRunTimeModuleRequirements()
+    public final ModuleRequirement [] getRuntimeModuleRequirements()
     {
-        return theRunTimeModuleRequirements;
+        return theRuntimeModuleRequirements;
     }
 
     /**
@@ -377,7 +379,7 @@ public class ModuleMeta
     /**
      * The requirements for other modules that this Module will have at run time.
      */
-    protected ModuleRequirement [] theRunTimeModuleRequirements;
+    protected ModuleRequirement [] theRuntimeModuleRequirements;
 
     /**
      * The license of the Module.
@@ -405,6 +407,11 @@ public class ModuleMeta
      * The resourceJarEntryPrefix for WAR files.
      */
     public static final String WAR_RESOURCE_JAR_ENTRY_PREFIX = "WEB-INF/classes/";
+
+    /**
+     * The resourceJarEntryPrefix for unpacked directories.
+     */
+    public static final String UNPACKED_RESOURCE_JAR_ENTRY_PREFIX = "";
 
     /**
      * The name of the Module activation/deactivation class.

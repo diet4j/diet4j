@@ -151,7 +151,7 @@ public class TomcatModuleLoader
         dirs.keySet().toArray( dirArray );
 
         theModuleRegistry = ScanningDirectoriesModuleRegistry.create( dirArray );
-        
+
         // I would have liked to invoke super.startInternal() last but that's the only way I can get at our ClassLoader.
         super.startInternal();
 
@@ -159,11 +159,11 @@ public class TomcatModuleLoader
 
         try {
             ModuleRequirement rootRequirement = ModuleRequirement.parse( theRootmodule );
-        
+
             ModuleMeta foundRootMeta   = theModuleRegistry.determineSingleResolutionCandidate( rootRequirement );
             Module     foundRootModule = theModuleRegistry.resolve( foundRootMeta );
 
-            myClassLoader.initialize( foundRootModule.determineDependencies() );
+            myClassLoader.initialize( foundRootModule.determineRuntimeDependencies() );
 
             foundRootModule.activateRecursively();
                     // may throw an exception
@@ -188,7 +188,7 @@ public class TomcatModuleLoader
                     indent.append( "  " );
                 }
             }
-            
+
             throw new LifecycleException( msg.toString() );
         } catch( Throwable ex ) {
             throw new LifecycleException( ex );
@@ -228,12 +228,12 @@ public class TomcatModuleLoader
      * Directory in which the module JARs can be found.
      */
     protected String theModuledirectory = DEFAULT_MODULEDIRECTORY;
- 
+
     /**
      * Keep a reference to the ModuleRegistries that we are using so they won't be garbage collected.
      */
     protected ModuleRegistry theModuleRegistry;
-    
+
     /**
      * The default directory in which the module JARs can be found.
      */

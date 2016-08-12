@@ -30,7 +30,7 @@ public abstract class ModuleRegistry
 {
     /**
      * Obtain the singleton instance of this class, or a subclass.
-     * 
+     *
      * @return the singleton instance, or null if not set
      */
     public static ModuleRegistry getSingleton()
@@ -53,7 +53,7 @@ public abstract class ModuleRegistry
      * Convenience method to determine the one and only ModuleMeta that is the only candidate to resolve a Module
      * dependency, based on the knowledge of this ModuleRegistry. If there is more or less than one
      * match, thrown an Exception.
-     * 
+     *
      * @param req the ModuleRequirement that we attempt to resolve
      * @return the ModuleMeta that is the only candidate for the resolution of the ModuleRequirement
      * @throws NoModuleResolutionCandidateException thrown if no ModuleMeta was found
@@ -106,32 +106,34 @@ public abstract class ModuleRegistry
             ModuleMeta meta );
 
     /**
-     * Given a Module, this allows us to determine which other Modules it depends on.
+     * Given a Module, this allows us to determine which other Modules it depends at
+     * run-time.
      * This is similar to the result of determineResolutionCandidates(), except that
      * this returns one resolved Module for each dependency, not a set of ModuleMetas
      * that may or may not be resolvable.
      *
-     * @param theModule the Module whose dependencies we want to determine
-     * @return the set of Modules that this Module depends on
-     * @see #determineUses
+     * @param theModule the Module whose run-time dependencies we want to determine
+     * @return the set of Modules that this Module depends on at run-time
+     * @see #determineRuntimeUses
      */
-    public abstract Module [] determineDependencies(
+    public abstract Module [] determineRuntimeDependencies(
             Module theModule );
 
     /**
-     * Given a Module, this allows us to determine which other Modules use it.
+     * Given a Module, this allows us to determine which other Modules use it at
+     * run-time.
      *
-     * This is the inverse relationship found by determineDependencies. However,
-     * unlike determineDependencies, the returned values may change dramatically
+     * This is the inverse relationship found by determineRuntimeDependencies. However,
+     * unlike determineRuntimeDependencies, the returned values may change dramatically
      * during operation of the system as additional Modules become users.
      *
-     * @param theModule the Module whose uses we want to determine
-     * @return the set of Modules that this Module currently is used by
-     * @see #determineDependencies
+     * @param theModule the Module whose uses we want to determine at run-time
+     * @return the set of Modules that this Module currently is used by at run-time
+     * @see #determineRuntime Dependencies
      */
-    public abstract Module [] determineUses(
+    public abstract Module [] determineRuntimeUses(
             Module theModule );
-    
+
     /**
      * ModuleRegistries can also acts as a factory for the Modules' ClassLoaders.
      *
@@ -145,7 +147,7 @@ public abstract class ModuleRegistry
 
     /**
      * Obtain the set of Module names currently contained in the registry.
-     * 
+     *
      * @return the set of Module names
      */
     public abstract Set<String> nameSet();
@@ -153,7 +155,7 @@ public abstract class ModuleRegistry
     /**
      * Obtain the set of Module names currently contained in the registry that match a
      * naming pattern.
-     * 
+     *
      * @param regex the regular expression
      * @return the set of Module names
      */
@@ -177,7 +179,7 @@ public abstract class ModuleRegistry
      */
     public abstract void removeModuleRegistryListener(
             ModuleRegistryListener oldListener );
-    
+
     /**
      * The singleton instance of this class. Must be set by subclasses.
      */

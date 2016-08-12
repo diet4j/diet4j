@@ -106,29 +106,31 @@ public class Module
     {
         return theRegistry;
     }
-    
+
     /**
-     * Convenience method to determine the dependent Modules of this Module.
-     * 
-     * @return the dependent Modules
+     * Convenience method to determine the dependent Modules of this Module
+     * at run-time.
+     *
+     * @return the dependent Modules at run-time
      */
-    public final Module [] determineDependencies()
+    public final Module [] determineRuntimeDependencies()
     {
-        return theRegistry.determineDependencies( this );
+        return theRegistry.determineRuntimeDependencies( this );
     }
 
     /**
-     * Convenience method to determine the Modules that use this Module.
+     * Convenience method to determine the Modules that use this Module at
+     * run-time.
      *
-     * This is the inverse relationship found by determineDependencies. However,
-     * unlike determineDependencies, the returned values may change dramatically
+     * This is the inverse relationship found by determineRuntimeDependencies. However,
+     * unlike determineRuntimeDependencies, the returned values may change dramatically
      * during operation of the system as additional Modules become users.
-     * 
-     * @return the set of Modules that this Module currently is used by
+     *
+     * @return the set of Modules that this Module currently is used by at run-time
      */
-    public final Module [] determineUses()
+    public final Module [] determineRuntimeUses()
     {
-        return theRegistry.determineUses( this );
+        return theRegistry.determineRuntimeUses( this );
     }
 
     /**
@@ -199,7 +201,7 @@ public class Module
             try {
                 log.log( Level.FINER, "moduleActivateRecursivelyStarted: {0}", this );
 
-                Module [] dependencies = theRegistry.determineDependencies( this );
+                Module [] dependencies = theRegistry.determineRuntimeDependencies( this );
 
                 for( int i=0 ; i<dependencies.length ; ++i ) {
                     if( dependencies[i] != null ) {
@@ -213,7 +215,7 @@ public class Module
                 }
                 theContextObject = activator.activate();
                 // this may throw an exception
-                
+
                 success = true;
 
             } finally {
@@ -222,7 +224,7 @@ public class Module
                 } else {
                     log.log( Level.FINER, "moduleActivateRecursivelyFailed: {0}", this );
                 }
-                
+
             }
         }
         ++theActivationCount;
@@ -256,7 +258,7 @@ public class Module
     {
         --theActivationCount;
         if( theActivationCount == 0 ) {
-            Module [] dependencies = theRegistry.determineDependencies( this );
+            Module [] dependencies = theRegistry.determineRuntimeDependencies( this );
 
             activator.deactivate();
 
@@ -270,7 +272,7 @@ public class Module
 
     /**
      * Obtain the context object returned by the activation method of this Module, if any.
-     * 
+     *
      * @return the context object, or null
      */
     public final Object getContextObject()
@@ -381,7 +383,7 @@ public class Module
 
     /**
      * Obtain the default ModuleActivator for this Module.
-     * 
+     *
      * @return the ModuleActivator
      */
     public ModuleActivator getDefaultModuleActivator()
@@ -461,12 +463,12 @@ public class Module
      * Activation of this Module may create a context object, which is buffered here.
      */
     private Object theContextObject;
-    
+
     /**
      * Name of the run method on a class.
      */
     public static final String RUN_METHOD_NAME = "main";
-    
+
     /**
      * Logger.
      */

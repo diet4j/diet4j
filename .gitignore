@@ -1,3 +1,4 @@
 target/
 nbactions.xml
 *.versionsBackup
+diet4j-*.pkg*

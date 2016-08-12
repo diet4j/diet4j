@@ -24,6 +24,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.diet4j.core.Module;
@@ -41,7 +42,7 @@ public class StatusMain
 {
     /**
      * Main program, must be invoked by diet4j framework.
-     * 
+     *
      * @param args command-line arguments
      */
     public static void main(
@@ -88,16 +89,19 @@ public class StatusMain
         if( module == null ) {
             module = flags.remove( "module" );
         }
+
         if( module == (Object) NOARG ) { // get rid of silly IDE warning
             synopsis();
             return;
-            
+
         } else if( module != null ) {
             try {
                 showModule(
                         module,
-                        flags.remove( "r" ) != null || flags.remove( "recursive" ) != null,
-                        flags.remove( "v" ) != null || flags.remove( "verbose" ) != null );
+                        flags.remove( "recursive" ) != null || flags.remove( "r" ) != null,
+                        flags.remove( "long"   )    != null,
+                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null,
+                        flags.remove( "runtime")    != null );
 
             } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
                 log.severe( ex.getLocalizedMessage() );
@@ -106,10 +110,10 @@ public class StatusMain
         }
         synopsis();
     }
-    
+
     /**
      * Find the ModuleRegistry.
-     * 
+     *
      * @return the ModuleRegistry
      */
     public static ModuleRegistry findRegistry()
@@ -129,7 +133,7 @@ public class StatusMain
         ModuleRegistry registry = findRegistry();
         Set<String>    names    = registry.nameSet();
         PrintStream    out      = System.out;
-        
+
         ArrayList<String> sortedNames = new ArrayList<>();
         sortedNames.addAll( names );
         Collections.sort( sortedNames );
@@ -154,16 +158,18 @@ public class StatusMain
                 out.print( "<Cannot parse into ModuleRequirement>: " + name );
             }
             out.print( "\n" );
-        }            
+        }
     }
 
     /**
      * Show a particular Module.
-     * 
+     *
      * @param name the name of the Module
      * @param recursive if true, also recursively show all dependencies
+     * @param loong if true, show the entire tree, do not attempt to shorten
      * @param verbose if true, show more detail
-     * 
+     * @param runtime if true, only show runtime dependencies
+     *
      * @throws ModuleNotFoundException thrown if a needed Module could not be found
      * @throws ModuleResolutionException thrown if a needed Module could not be resolved
      * @throws ParseException thrown if the provided Module name was invalid
@@ -171,7 +177,9 @@ public class StatusMain
     public static void showModule(
             String  name,
             boolean recursive,
-            boolean verbose )
+            boolean loong,
+            boolean verbose,
+            boolean runtime )
         throws
             ModuleNotFoundException,
             ModuleResolutionException,
@@ -180,8 +188,9 @@ public class StatusMain
         ModuleRegistry registry = findRegistry();
 
         // find and resolve the main module
-        ModuleMeta [] moduleMetas = registry.determineResolutionCandidates( ModuleRequirement.parse( name ));
-        
+        ModuleRequirement req         = ModuleRequirement.parse( name );
+        ModuleMeta []     moduleMetas = registry.determineResolutionCandidates( req );
+
         if( moduleMetas.length == 0  ) {
             throw new RuntimeException( "Cannot find a module: " + name );
         }
@@ -196,25 +205,33 @@ public class StatusMain
         }
 
         Module module = registry.resolve( moduleMetas[0] );
-        
-        showModule( module, 0, recursive, verbose, System.err );
+
+        HashSet<Module> haveAlready = loong ? null : new HashSet<>();
+
+        showModule( req, module, 0, haveAlready, recursive, verbose, runtime, System.out );
     }
-    
+
     /**
      * Recursive helper method to dump a Module hierarchy.
-     * 
-     * @param mod the Module
+     *
+     * @param req the ModuleRequirements that lead to the Module
+     * @param mod the Module or null if you could not be resolved
      * @param indent how many levels of indent
+     * @param haveAlready keep track of modules we already have displayed
      * @param recursive if true, show dependent modules as well
      * @param verbose if true, show more detail
+     * @param runtime if true, only show runtime dependencies
      * @param out the stream to print to
      */
     protected static void showModule(
-            Module      mod,
-            int         indent,
-            boolean     recursive,
-            boolean     verbose,
-            PrintStream out )
+            ModuleRequirement req,
+            Module            mod,
+            int               indent,
+            Set<Module>       haveAlready,
+            boolean           recursive,
+            boolean           verbose,
+            boolean           runtime,
+            PrintStream       out )
     {
         for( int i=0 ; i<indent ; ++i ) {
             out.print( "    " );
@@ -224,22 +241,37 @@ public class StatusMain
             if( verbose ) {
                 out.print( " (" );
                 out.print( mod.getModuleMeta().getProvidesJar().getName());
+                if( req.isOptional() ) {
+                    out.println( " optional" );
+                }
                 out.print( ")" );
+            }
+            if( haveAlready != null && haveAlready.contains( mod )) {
+                out.println(  " -- repeated, see above" );
+                return;
             }
             out.println();
 
-            if( recursive ) {
-                Module [] dependencies = mod.determineDependencies();
+            if( haveAlready != null ) {
+                haveAlready.add( mod );
+            }
 
-                for( Module dep : dependencies ) {
-                    showModule( dep, indent+1, recursive, verbose, out );
+            if( recursive ) {
+                ModuleRequirement [] reqs         = mod.getModuleMeta().getRuntimeModuleRequirements();
+                Module []            dependencies = mod.determineRuntimeDependencies();
+
+                for( int i=0 ; i<dependencies.length ; ++i ) {
+                    showModule( reqs[i], dependencies[i], indent+1, haveAlready, recursive, verbose, runtime, out );
                 }
             }
-        } else {
+        } else if( req.isOptional() ) {
             // optional dependency, not resolved
-            out.println( "<not resolved>" );
+            out.println( "<optional not resolved: " + req.toString() + ">" );
+        } else {
+            // dependency, not resolved
+            out.println( "<NOT RESOLVED: " + req.toString() + ">" );
         }
-    } 
+    }
 
     /**
      * Print the synopsis for this app.
@@ -247,13 +279,13 @@ public class StatusMain
     public static void synopsis()
     {
         System.out.println( "Synopsis:" );
-        System.out.println( "    --module <module> [--recursive][--verbose] display information about the named Module" );
-        System.out.println( "    --showmoduleregistry                       show all known Modules" );
-        System.out.println( "    --help                                     this message" );
+        System.out.println( "    --module <module> [--recursive [--long]][--verbose][--runtime] display information about the named Module" );
+        System.out.println( "    --showmoduleregistry                                           show all known Modules" );
+        System.out.println( "    --help                                                         this message" );
     }
-    
+
     /**
      * Logger.
      */
-    private static final Logger log = Logger.getLogger( StatusMain.class.getName() ); 
+    private static final Logger log = Logger.getLogger( StatusMain.class.getName() );
 }

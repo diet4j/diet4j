@@ -4,13 +4,12 @@
 
     <groupId>org.diet4j</groupId>
     <artifactId>diet4j</artifactId>
-    <version>0.12</version>
-
+    <version><!-- PKGVER -->0.13<!-- /PKGVER --></version>
     <name>diet4j</name>
     <url>http://diet4j.org/</url>
     <packaging>pom</packaging>
 
-    <description>Distribute Maven JARs one module at a time, diet4j will 
+    <description>Distribute Maven JARs one module at a time, diet4j will
 automatically assemble them at run-time without needing gigantic JARs.</description>
     <modules>
         <module>diet4j-cmdline</module>

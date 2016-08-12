@@ -96,7 +96,7 @@ public abstract class AbstractModuleRegistry
             if( ret == null ) {
                 Module [] dependentModules = null;
                 if( recursive ) {
-                    ModuleRequirement [] reqs = meta.getRunTimeModuleRequirements();
+                    ModuleRequirement [] reqs = meta.getRuntimeModuleRequirements();
                     dependentModules          = new Module[ reqs.length ];
 
                     for( int i=0 ; i<reqs.length ; ++i ) {
@@ -132,10 +132,10 @@ public abstract class AbstractModuleRegistry
                     theModules.put( meta, ret );
 
                     if( recursive ) {
-                        theForwardDependencies.put( ret, dependentModules );
+                        theForwardRuntimeDependencies.put( ret, dependentModules );
 
                         for( int i=0 ; i<dependentModules.length ; ++i ) {
-                            Module [] uses    = theUses.get( dependentModules[i] );
+                            Module [] uses    = theRuntimeUses.get( dependentModules[i] );
                             Module [] newUses = null;
 
                             if( uses == null ) {
@@ -156,7 +156,7 @@ public abstract class AbstractModuleRegistry
                                 }
                             }
                             if( dependentModules[i] != null ) {
-                                theUses.put( dependentModules[i], newUses );
+                                theRuntimeUses.put( dependentModules[i], newUses );
                             }
                         }
                     }
@@ -184,11 +184,11 @@ public abstract class AbstractModuleRegistry
      * {@inheritDoc}
      */
     @Override
-    public final Module [] determineDependencies(
+    public final Module [] determineRuntimeDependencies(
             Module theModule )
     {
         synchronized( RESOLVE_LOCK ) {
-            return theForwardDependencies.get( theModule );
+            return theForwardRuntimeDependencies.get( theModule );
         }
     }
 
@@ -196,11 +196,11 @@ public abstract class AbstractModuleRegistry
      * {@inheritDoc}
      */
     @Override
-    public final Module [] determineUses(
+    public final Module [] determineRuntimeUses(
             Module theModule )
     {
         synchronized( RESOLVE_LOCK ) {
-            return theUses.get( theModule );
+            return theRuntimeUses.get( theModule );
         }
     }
 
@@ -219,7 +219,7 @@ public abstract class AbstractModuleRegistry
         ClassLoader ret = parentClassLoader;
 
         try {
-            Module []            dependencies           = module.getModuleRegistry().determineDependencies( module );
+            Module []            dependencies           = module.getModuleRegistry().determineRuntimeDependencies( module );
             ModuleClassLoader [] dependencyClassLoaders = new ModuleClassLoader[ dependencies.length ];
 
             for( int i=0 ; i<dependencies.length ; ++i ) {
@@ -236,7 +236,7 @@ public abstract class AbstractModuleRegistry
         }
         return ret;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -284,7 +284,7 @@ public abstract class AbstractModuleRegistry
 
     /**
      * Obtain String representation.
-     * 
+     *
      * @return String representation
      */
     @Override
@@ -300,20 +300,20 @@ public abstract class AbstractModuleRegistry
 
     /**
      * This maps from Module to Module[], reflecting the dependency of one
-     * Module on a set of others. This is the inverse relationship of what
-     * is captured in theUses.
+     * Module on a set of others at run-time. This is the inverse relationship of what
+     * is captured in theRuntimeUses.
      *
      * The sequence of the items in the Module[] is the same as the sequence
      * of the items in the ModuleMeta's ModuleRequirements array.
      */
-    private final HashMap<Module,Module[]> theForwardDependencies = new HashMap<>();
+    private final HashMap<Module,Module[]> theForwardRuntimeDependencies = new HashMap<>();
 
     /**
      * This maps from Module to Module[], reflecting the use of one Module
      * by a set of others. This is the inverse relationship of what is
-     * captured in theForwardDependencies.
+     * captured in theForwardRuntimeDependencies.
      */
-    private final HashMap<Module,Module[]> theUses = new HashMap<>();
+    private final HashMap<Module,Module[]> theRuntimeUses = new HashMap<>();
 
     /**
      * The set of currently subscribed ModuleRegistryListeners. Allocated as needed.
@@ -324,7 +324,7 @@ public abstract class AbstractModuleRegistry
      * This object is used as a semaphore for Module loads.
      */
     protected final Object RESOLVE_LOCK = new Object();
-    
+
     /**
      * Logger.
      */
