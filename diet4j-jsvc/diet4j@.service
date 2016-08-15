@@ -1,0 +1,40 @@
+# /usr/lib/systemd/system/diet4j@.service
+#
+# Default service file for diet4j jsvc services
+#
+[Unit]
+Description=diet4j Java service
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/diet4j-%i.pid
+Environment=PIDFILE=/var/run/diet4j-%i.pid
+Environment=DIET4J_JAVA_HOME=/usr/lib/jvm/default-runtime
+Environment=VERSION=0.13
+Environment=OPTS=-verbose
+Environment=ARGS=
+Environment=USER=root
+Environment=ERRFILE=SYSLOG
+Environment=OUTFILE=SYSLOG
+Environment=ROOTMODULE=%i
+
+ExecStart=/usr/bin/jsvc \
+            -cp /usr/lib/java/org/diet4j/diet4j-jsvc/${VERSION}/diet4j-jsvc-${VERSION}.jar \
+            -user ${USER} \
+            -java-home ${DIET4J_JAVA_HOME} \
+            -pidfile ${PIDFILE} \
+            -errfile ${ERRFILE} \
+            -outfile ${OUTFILE} \
+            ${OPTS} \
+            org.diet4j.jsvc.Diet4jDaemon \
+            ${ROOTMODULE} \
+            ${ARGS}
+
+ExecStop=/usr/bin/jsvc \
+            -pidfile ${PIDFILE} \
+            -stop \
+            ${ROOTMODULE}
+
+[Install]
+WantedBy=multi-user.target
