@@ -19,7 +19,7 @@
 #
 
 REPO=${DIET4J_REPO:-/usr/lib/java}
-VERSION=0.12
+VERSION=${DIET4J_VERSION:-0.14}
 DIET4JJAR="${REPO}/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar"
 MODULEDIR="${REPO}"
 

@@ -4,7 +4,7 @@
 
     <groupId>org.diet4j</groupId>
     <artifactId>diet4j</artifactId>
-    <version><!-- PKGVER -->0.13<!-- /PKGVER --></version>
+    <version><!-- PKGVER -->0.14<!-- /PKGVER --></version>
     <name>diet4j</name>
     <url>http://diet4j.org/</url>
     <packaging>pom</packaging>
@@ -17,6 +17,7 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
         <module>diet4j-inclasspath</module>
         <module>diet4j-status</module>
         <module>diet4j-tomcat</module>
+        <module>diet4j-jsvc</module>
     </modules>
 
     <build>
@@ -149,5 +150,6 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <commons-daemon.version>1.0.9</commons-daemon.version>
     </properties>
 </project>
