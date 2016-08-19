@@ -11,7 +11,7 @@ depends=('java-runtime=8' 'java-jsvc')
 prepare() {
     # Set pom.xml versions correctly; depends on XML-comment-based markup in pom.xml files
     # This is a great big hack, but does the job
-    find ${startdir} -name pom.xml -exec perl -pi -e "s/(?<=\<\!-- PKGVER -->)(\d+(\.\d+)+)(?=\<\!-- \/PKGVER -->)/${pkgver}/g" {} \;
+    find ${startdir} -path ${startdir}/pkg -prune -o -name pom.xml -exec perl -pi -e "s/(?<=\<\!-- PKGVER -->)(\d+(\.\d+)+)(?=\<\!-- \/PKGVER -->)/${pkgver}/g" {} \;
 }
 
 build() {

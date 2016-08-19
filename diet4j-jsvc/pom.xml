@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>diet4j-core</artifactId>
+            <artifactId>diet4j-cmdline</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
