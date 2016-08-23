@@ -41,8 +41,8 @@ import org.diet4j.core.NoRunMethodException;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
 
 /**
- *
- * @author buildmaster
+ * An implementation of the jsvc Daemon interface that enables jsvc to
+ * invoke the diet4j framework and start a diet4j module.
  */
 public class Diet4jDaemon
     implements Daemon
