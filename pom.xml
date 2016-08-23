@@ -133,16 +133,14 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                    <keyname>FBFBF0D2</keyname>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
-            <properties>
-                <gpg.keyname>3BB1CD74</gpg.keyname>
-                <gpg.defaultKeyring>true</gpg.defaultKeyring>
-                <gpg.useagent>true</gpg.useagent>
-            </properties>
         </profile>
     </profiles>
 
