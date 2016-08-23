@@ -263,8 +263,11 @@ public class Module
             activator.deactivate();
 
             for( int i=0 ; i<dependencies.length ; ++i ) {
-                ModuleActivator childDeactivator = activator.dependentModuleActivator( dependencies[i] );
-                dependencies[i].deactivateRecursively( childDeactivator );
+                if( dependencies[i] != null ) {
+                    // might be an optional dependency
+                    ModuleActivator childDeactivator = activator.dependentModuleActivator( dependencies[i] );
+                    dependencies[i].deactivateRecursively( childDeactivator );
+                }
             }
             // this may throw an exception
         }

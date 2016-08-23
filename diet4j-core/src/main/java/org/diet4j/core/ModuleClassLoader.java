@@ -81,7 +81,7 @@ public class ModuleClassLoader
 
     /**
      * Convenience method to obtain the ModuleRegistry in use.
-     * 
+     *
      * @return the ModuleRegistry
      */
     public ModuleRegistry getModuleRegistry()
@@ -268,7 +268,7 @@ public class ModuleClassLoader
             if( closeReporting ) {
                 log.log( Level.FINE, "loadClass failed: Module {0} (class: {1})", new Object[] { theModule, name } );
             }
-            throw new ClassNotFoundException( name );
+            throw new ClassNotFoundException( name + " (ClassLoader for module " + theModule.toString() + ")" );
         }
 
         if( resolve ) {
@@ -525,12 +525,30 @@ public class ModuleClassLoader
      * Marker object to be inserted into the cannotFindTable.
      */
     private static final Object CANNOT_FIND_OBJECT = new Object();
-    
+
     /**
      * Only load classes with this prefix from the default ClassLoader.
+     * It would be really nice if those were easier to determine, but javax.servlet,
+     * for example, is defined in Jetty as well.
      */
     public static final String [] MODULE_CLASSES_PREFIXES = {
-        "java", // java, javax
+        "java.", // java
+        "javax.a",
+        "javax.c",
+        "javax.i",
+        "javax.j",
+        "javax.l",
+        "javax.m",
+        "javax.n",
+        "javax.p",
+        "javax.r",
+        "javax.script", // not servlet
+        "javax.sec",
+        "javax.so",
+        "javax.sql",
+        "javax.swing",
+        "javax.t",
+        "javax.x",
         "com.sun.",
         "sun", // sun, sunw
         "org.diet4j.cmdline",
@@ -549,7 +567,7 @@ public class ModuleClassLoader
 
     /**
      * Compound iterator helper class.
-     * 
+     *
      * @param <T> the type of element to iterate over
      */
     public static class CompoundIterator<T>
@@ -602,12 +620,12 @@ public class ModuleClassLoader
             }
             return theContinued.nextElement();
         }
-        
+
         /**
           * The first element to return.
           */
         protected T theFirstElement;
-         
+
         /**
           * The Enumeration over all other elements to return after the first.
           */
