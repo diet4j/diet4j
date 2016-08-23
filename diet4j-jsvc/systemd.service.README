@@ -1,26 +1,29 @@
-# /usr/lib/systemd/system/diet4j@.service
 #
-# Default service file for diet4j jsvc services
+# To run diet4j-jsvc from jsvc using systemd, use this template and modify
+# according to your needs.
 #
+# The tag FIXME: gives a good idea which elements to change
+#
+
 [Unit]
-Description=diet4j Java service
+Description=FIXME: some diet4j-based Java service (jsvc)
 After=network.target
 
 [Service]
-Type=forking
-PIDFile=/var/run/diet4j-%i.pid
-Environment=PIDFILE=/var/run/diet4j-%i.pid
+Type=simple
+PIDFile=/var/run/FIXME-name-of-service.pid
+Environment=PIDFILE=/var/run/FIXME-name-of-service.pid
 Environment=DIET4J_JAVA_HOME=/usr/lib/jvm/default-runtime
-Environment=VERSION=0.13
-Environment=OPTS=-verbose
+Environment=DIET4J_VERSION=FIXME-0.14
+Environment=OPTS=-nodetach
 Environment=ARGS=
 Environment=USER=root
 Environment=ERRFILE=SYSLOG
 Environment=OUTFILE=SYSLOG
-Environment=ROOTMODULE=%i
+Environment=ROOTMODULE=FIXME-diet4j-examples-activate
 
 ExecStart=/usr/bin/jsvc \
-            -cp /usr/lib/java/org/diet4j/diet4j-jsvc/${VERSION}/diet4j-jsvc-${VERSION}.jar \
+            -cp /usr/lib/java/org/diet4j/diet4j-jsvc/${DIET4J_VERSION}/diet4j-jsvc-${VERSION}.jar \
             -user ${USER} \
             -java-home ${DIET4J_JAVA_HOME} \
             -pidfile ${PIDFILE} \
@@ -34,7 +37,7 @@ ExecStart=/usr/bin/jsvc \
 ExecStop=/usr/bin/jsvc \
             -pidfile ${PIDFILE} \
             -stop \
-            ${ROOTMODULE}
+            org.diet4j.jsvc.Diet4jDaemon
 
 [Install]
 WantedBy=multi-user.target

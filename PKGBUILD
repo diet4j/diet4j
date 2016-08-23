@@ -35,10 +35,6 @@ package() {
     # Tomcat
     mkdir -p ${pkgdir}/usr/share/java/tomcat8
     ln -s /usr/lib/java/org/diet4j/diet4j-tomcat/${pkgver}/diet4j-tomcat-${pkgver}.jar ${pkgdir}/usr/share/java/tomcat8/diet4j-tomcat-${pkgver}.jar
-
-    # systemd
-    mkdir -p ${pkgdir}/usr/lib/systemd/system
-    install -m644 ${startdir}/diet4j-jsvc/diet4j@.service ${pkgdir}/usr/lib/systemd/system/
 }
 
 installOne() {
