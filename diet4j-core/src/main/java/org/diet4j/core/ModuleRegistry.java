@@ -129,7 +129,7 @@ public abstract class ModuleRegistry
      *
      * @param theModule the Module whose uses we want to determine at run-time
      * @return the set of Modules that this Module currently is used by at run-time
-     * @see #determineRuntime Dependencies
+     * @see #determineRuntimeDependencies
      */
     public abstract Module [] determineRuntimeUses(
             Module theModule );
