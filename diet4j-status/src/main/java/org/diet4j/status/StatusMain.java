@@ -100,8 +100,7 @@ public class StatusMain
                         module,
                         flags.remove( "recursive" ) != null || flags.remove( "r" ) != null,
                         flags.remove( "long"   )    != null,
-                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null,
-                        flags.remove( "runtime")    != null );
+                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
 
             } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
                 log.severe( ex.getLocalizedMessage() );
@@ -168,7 +167,6 @@ public class StatusMain
      * @param recursive if true, also recursively show all dependencies
      * @param loong if true, show the entire tree, do not attempt to shorten
      * @param verbose if true, show more detail
-     * @param runtime if true, only show runtime dependencies
      *
      * @throws ModuleNotFoundException thrown if a needed Module could not be found
      * @throws ModuleResolutionException thrown if a needed Module could not be resolved
@@ -178,8 +176,7 @@ public class StatusMain
             String  name,
             boolean recursive,
             boolean loong,
-            boolean verbose,
-            boolean runtime )
+            boolean verbose )
         throws
             ModuleNotFoundException,
             ModuleResolutionException,
@@ -204,11 +201,11 @@ public class StatusMain
             throw new RuntimeException( msg.toString() );
         }
 
-        Module module = registry.resolve( moduleMetas[0] );
+        Module module = registry.resolve( moduleMetas[0], recursive );
 
         HashSet<Module> haveAlready = loong ? null : new HashSet<>();
 
-        showModule( req, module, 0, haveAlready, recursive, verbose, runtime, System.out );
+        showModule( req, module, 0, haveAlready, recursive, verbose, System.out );
     }
 
     /**
@@ -220,7 +217,6 @@ public class StatusMain
      * @param haveAlready keep track of modules we already have displayed
      * @param recursive if true, show dependent modules as well
      * @param verbose if true, show more detail
-     * @param runtime if true, only show runtime dependencies
      * @param out the stream to print to
      */
     protected static void showModule(
@@ -230,7 +226,6 @@ public class StatusMain
             Set<Module>       haveAlready,
             boolean           recursive,
             boolean           verbose,
-            boolean           runtime,
             PrintStream       out )
     {
         for( int i=0 ; i<indent ; ++i ) {
@@ -257,11 +252,29 @@ public class StatusMain
             }
 
             if( recursive ) {
-                ModuleRequirement [] reqs         = mod.getModuleMeta().getRuntimeModuleRequirements();
-                Module []            dependencies = mod.determineRuntimeDependencies();
+                ModuleRequirement [] reqs = mod.getModuleMeta().getRuntimeModuleRequirements();
+                Module []            deps = mod.determineRuntimeDependencies();
 
-                for( int i=0 ; i<dependencies.length ; ++i ) {
-                    showModule( reqs[i], dependencies[i], indent+1, haveAlready, recursive, verbose, runtime, out );
+                for( int i=0 ; i<reqs.length ; ++i ) {
+                    showModule( reqs[i], deps[i], indent+1, haveAlready, recursive, verbose, out );
+                }
+            } else if( verbose ) {
+                ModuleRequirement [] reqs = mod.getModuleMeta().getRuntimeModuleRequirements();
+                for( int i=0 ; i<reqs.length ; ++i ) {
+                    for( int j=0 ; j<=indent ; ++j ) {
+                        out.print( "    " );
+                    }
+                    out.print( reqs[i] );
+                    out.print( " (");
+                    if( reqs[i].isOptional() ) {
+                        out.println( "optional, " );
+                    }
+                    if( mod.getModuleRegistry().determineResolutionCandidates( reqs[i] ).length > 0 ) {
+                        out.print( "resolvable" );
+                    } else {
+                        out.print( "unresolvable" );
+                    }
+                    out.println( ")" );
                 }
             }
         } else if( req.isOptional() ) {
@@ -279,9 +292,9 @@ public class StatusMain
     public static void synopsis()
     {
         System.out.println( "Synopsis:" );
-        System.out.println( "    --module <module> [--recursive [--long]][--verbose][--runtime] display information about the named Module" );
-        System.out.println( "    --showmoduleregistry                                           show all known Modules" );
-        System.out.println( "    --help                                                         this message" );
+        System.out.println( "    --module <module> [--recursive [--long]][--verbose] display information about the named Module" );
+        System.out.println( "    --showmoduleregistry                                show all known Modules" );
+        System.out.println( "    --help                                              this message" );
     }
 
     /**
