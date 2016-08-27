@@ -40,7 +40,7 @@ public class InClasspathModuleRegistry
 {
     /**
      * Instantiate an InClasspathModuleRegistry as the singleton ModuleRegistry
-     * 
+     *
      * @param loader the ClassLoader where to find the Modules
      * @return the singleton instance
      * @throws IllegalStateException thrown if there is already a singleton instance
@@ -62,7 +62,7 @@ public class InClasspathModuleRegistry
             return (InClasspathModuleRegistry) theSingleton;
         }
     }
-    
+
     /**
      * Obtain the already instantiated ModuleRegistry, or instantiate an InclasspathModuleRegistry
      * as the singleton ModuleRegistry.
@@ -94,11 +94,11 @@ public class InClasspathModuleRegistry
             HashMap<String,MiniModuleMetaMap> metas,
             ClassLoader                       loader )
     {
-        super( metas );
-        
+        super( metas, new String[0] );
+
         theClassLoader = loader;
     }
-    
+
     /**
      * ModuleRegistry also acts as a factory for the Modules' ClassLoaders.
      * Here, all Modules share the same ClassLoaders.
@@ -114,10 +114,10 @@ public class InClasspathModuleRegistry
     {
         return parentClassLoader;
     }
-    
+
     /**
      * Find the ModuleMetas available to this ClassLoader.
-     * 
+     *
      * @param cl the class loader
      * @return the found ModuleMetas, keyed by module name, and ordered by version
      * @throws IOException reading files failed
@@ -158,7 +158,7 @@ public class InClasspathModuleRegistry
                     break;
             }
         }
-        
+
         HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );          // looks into the JARs, from the top
         addParsedModuleMetasFromDirectories( dirs, metas );   // looks into META-INF dirs

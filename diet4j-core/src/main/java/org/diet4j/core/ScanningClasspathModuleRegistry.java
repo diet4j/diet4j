@@ -37,7 +37,7 @@ public class ScanningClasspathModuleRegistry
 {
     /**
      * Instantiate ScanningClasspathModuleRegistry as the singleton ModuleRegistry
-     * 
+     *
      * @return the singleton instance
      * @throws IllegalStateException thrown if there is already a singleton instance
      * @throws IOException reading files failed
@@ -55,18 +55,18 @@ public class ScanningClasspathModuleRegistry
 
         return (ScanningClasspathModuleRegistry) theSingleton;
     }
-    
+
     /**
      * Private constructor; use factory method.
-     * 
-     * @para metas the found ModuleMetas
+     *
+     * @param metas the found ModuleMetas
      */
     private ScanningClasspathModuleRegistry(
             HashMap<String,MiniModuleMetaMap> metas )
     {
-        super( metas );
+        super( metas, new String[0] ); // doNotLoadClassPrefixes not used -- not using ModuleClassLoader either
     }
-    
+
     /**
      * ModuleRegistry also acts as a factory for the Modules' ClassLoaders.
      * Here, all Modules share the same ClassLoaders.
@@ -82,10 +82,10 @@ public class ScanningClasspathModuleRegistry
     {
         return parentClassLoader;
     }
-    
+
     /**
      * Find the ModuleMetas available to this ClassLoader.
-     * 
+     *
      * @param cl the class loader
      * @return the found ModuleMetas, keyed by module name, and ordered by version
      * @throws IOException reading files failed
@@ -101,7 +101,7 @@ public class ScanningClasspathModuleRegistry
 
         while( metaInfoUrls.hasMoreElements() ) {
             URL metaInfoUrl = metaInfoUrls.nextElement();
-            
+
             switch( metaInfoUrl.getProtocol() ) {
                 case "jar":
                     String jarFile = metaInfoUrl.getFile();
@@ -127,7 +127,7 @@ public class ScanningClasspathModuleRegistry
                     break;
             }
         }
-        
+
         HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );          // looks into the JARs, from the top
         addParsedModuleMetasFromDirectories( dirs, metas );   // looks into META-INF dirs

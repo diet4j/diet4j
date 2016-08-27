@@ -66,10 +66,14 @@ public abstract class AbstractScanningModuleRegistry
      *
      * @param metas the ModuleMetas found, keyed by their artifactId, then by their groupId,
      *               and then ordered by version
+     * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
      */
     protected AbstractScanningModuleRegistry(
-            Map<String,MiniModuleMetaMap> metas )
+            Map<String,MiniModuleMetaMap> metas,
+            String []                     doNotLoadClassPrefixes )
     {
+        super( doNotLoadClassPrefixes );
+
         theMetas = metas;
     }
 
@@ -100,7 +104,7 @@ public abstract class AbstractScanningModuleRegistry
         } else {
             // no groupId was specified
             ModuleMeta [] found2 = found1.allValues();
-            
+
             return req.findVersionMatchesFrom( found2 );
         }
     }
@@ -121,7 +125,7 @@ public abstract class AbstractScanningModuleRegistry
             map = new MiniModuleMetaMap();
             metas.put( add.getModuleArtifactId(), map );
         }
-        
+
         ModuleMeta [] already = map.get( add.getModuleGroupId() );
         ModuleMeta [] newArray;
 
@@ -160,7 +164,7 @@ public abstract class AbstractScanningModuleRegistry
 
     /**
      * Obtain the set of Module names currently contained in the registry.
-     * 
+     *
      * @return the set of Module names
      */
     @Override
@@ -172,7 +176,7 @@ public abstract class AbstractScanningModuleRegistry
     /**
      * Obtain the set of Module names currently contained in the registry that match a
      * naming pattern.
-     * 
+     *
      * @param regex the regular expression
      * @return the set of Module names
      */
@@ -186,14 +190,14 @@ public abstract class AbstractScanningModuleRegistry
     /**
      * Given a list of Jar filenames, parse the JARs and determine the ModuleMetas that they contain.
      * Add them to the provided hash.
-     * 
+     *
      * @param jars the JarFiles to parse
      * @param result the hash to add results to
      */
     protected static void addParsedModuleMetasFromJars(
             List<JarFile>                     jars,
             HashMap<String,MiniModuleMetaMap> result )
-    {       
+    {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
         try {
@@ -268,7 +272,7 @@ public abstract class AbstractScanningModuleRegistry
     /**
      * Given a list of META-INF directories, determine the ModuleMetas that they contain.
      * Add them to the provided hash.
-     * 
+     *
      * @param dirs the META-INF directories
      * @param result the hash to add the results to
      */
@@ -321,7 +325,7 @@ public abstract class AbstractScanningModuleRegistry
 
     /**
      * Helper method to parse metadata jar file entries into a ModuleMeta.
-     * 
+     *
      * @param dbf the XML parser factory
      * @param jar the JAR file containing the entries
      * @param pomXmlEntryStream reading the maven pom.xml file
@@ -348,7 +352,7 @@ public abstract class AbstractScanningModuleRegistry
         HashMap<String,String> pomProperties = new HashMap<>();
         if( pomPropertiesEntryStream != null ) {
             // Unlike all others, these Properties don't have the ${project.XXX} prefix
-            Properties shortPomProperties = new Properties(); 
+            Properties shortPomProperties = new Properties();
             shortPomProperties.load( pomPropertiesEntryStream);
             for( String propName : shortPomProperties.stringPropertyNames() ) {
                 pomProperties.put( "project." + propName, shortPomProperties.getProperty( propName ));
@@ -396,7 +400,7 @@ public abstract class AbstractScanningModuleRegistry
 
         Element root = doc.getDocumentElement();
         root.normalize();
-        
+
         String moduleGroupId    = "${project.groupId}"; // default to what's in the Properties
         String moduleArtifactId = "${project.artifactId}"; // default to what's in the Properties
         String moduleVersion    = "${project.version}";    // default to what's in the Properties
@@ -409,11 +413,11 @@ public abstract class AbstractScanningModuleRegistry
         for( int i=0 ; i<rootChildren.getLength(); ++i ) {
             Node   rootChild     = rootChildren.item( i );
             String rootChildName = rootChild.getNodeName();
-            
+
             if( rootChildName == null ) {
                 continue;
             }
-            
+
             switch( rootChildName ) {
                 case "groupId":
                     moduleGroupId = rootChild.getTextContent();
@@ -438,7 +442,7 @@ public abstract class AbstractScanningModuleRegistry
                     for( int j=0 ; j<propertiesChildren.getLength() ; ++j ) {
                         Node   propertiesChild     = propertiesChildren.item( j );
                         String propertiesChildName = propertiesChild.getNodeName();
-                        
+
                         if( propertiesChild.getNodeType() != Node.ELEMENT_NODE ) {
                             continue;
                         }
@@ -453,7 +457,7 @@ public abstract class AbstractScanningModuleRegistry
                     for( int j=0 ; j<parentChildren.getLength() ; ++j ) {
                         Node   parentChild     = parentChildren.item( j );
                         String parentChildName = parentChild.getNodeName();
-                        
+
                         if( parentChildName == null ) {
                             continue;
                         }
@@ -469,28 +473,28 @@ public abstract class AbstractScanningModuleRegistry
                     for( int j=0 ; j<dependenciesChildren.getLength() ; ++j ) {
                         Node   dependenciesChild     = dependenciesChildren.item( j );
                         String dependenciesChildName = dependenciesChild.getNodeName();
-                        
+
                         if( dependenciesChildName == null ) {
                             continue;
                         }
-                        
+
                         if( dependenciesChildName.equals( "dependency" )) {
                             NodeList dependencyChildren = dependenciesChild.getChildNodes();
-                            
+
                             String  dependencyGroupdId   = null;
                             String  dependencyArtifactId = null;
                             String  dependencyVersion    = null;
                             String  dependencyScope      = null;
                             boolean isOptional           = false;
-                            
+
                             for( int k=0 ; k<dependencyChildren.getLength() ; ++k ) {
                                 Node   dependencyChild     = dependencyChildren.item( k );
                                 String dependencyChildName = dependencyChild.getNodeName();
-                                
+
                                 if( dependencyChildName == null ) {
                                     continue;
                                 }
-                                
+
                                 switch( dependencyChildName ) {
                                     case "groupId":
                                         dependencyGroupdId = dependencyChild.getTextContent();
@@ -536,7 +540,7 @@ public abstract class AbstractScanningModuleRegistry
         if( !pomProperties.containsKey( "project.groupId" )) {
             pomProperties.put( "project.groupId", parentGroupId );
         }
-        
+
         moduleGroupId    = replaceProperties( pomProperties, moduleGroupId );
         moduleArtifactId = replaceProperties( pomProperties, moduleArtifactId );
         moduleVersion    = replaceProperties( pomProperties, moduleVersion );
@@ -554,7 +558,7 @@ public abstract class AbstractScanningModuleRegistry
         if( moduleGroupId == null || moduleGroupId.isEmpty() ) {
             moduleGroupId = parentGroupId;
         }
-        
+
         if( "org.diet4j".equals( moduleGroupId )) {
             // filter out modules that we consider pre-installed
             if(    moduleArtifactId.equals( "diet4j-cmdline" )
@@ -580,18 +584,18 @@ public abstract class AbstractScanningModuleRegistry
                 return null; // not a main artifact
             }
         }
-        
+
         String runClassName = null;
         if( manifestEntryStream != null ) {
             Properties manifestProperties = new Properties();
             manifestProperties.load( manifestEntryStream );
             runClassName = manifestProperties.getProperty( "Main-Class" );
         }
-        
+
         ModuleMeta ret = null;
         if( moduleArtifactId != null ) {
             ModuleRequirement [] runTime = new ModuleRequirement[ runTimeRequirements.size() ];
-            
+
             // copy into arrays, and while we are at it, replace symbolic names in version and groupId where needed
             for( int i=0 ; i<runTime.length ; ++i ) {
                 ModuleRequirement current  = runTimeRequirements.get( i );
@@ -601,7 +605,7 @@ public abstract class AbstractScanningModuleRegistry
                 String            version2 = version != null ? replaceProperties( pomProperties, version ) : null;
 
                 if(    ( version == null || version.equals( version2 ) )
-                    && groupId.equals( groupId2 )) 
+                    && groupId.equals( groupId2 ))
                 {
                     runTime[i] = current;
                 } else {
@@ -633,10 +637,10 @@ public abstract class AbstractScanningModuleRegistry
         }
         return ret;
     }
-    
+
     /**
      * Replace properties in Strings.
-     * 
+     *
      * @param prop the map of properties
      * @param s the String
      * @return the replaced string
@@ -647,10 +651,10 @@ public abstract class AbstractScanningModuleRegistry
     {
         Pattern p = Pattern.compile( "\\$\\{(.+)\\}" );
         Matcher m = p.matcher( s );
-        
+
         // attempt to keep return value at null, if all we have is a String consisting of replacements to null
         StringBuffer b = null;
-        
+
         while( m.find() ) {
             String value = prop.get( m.group(1) );
             if( value != null ) {
@@ -686,8 +690,8 @@ public abstract class AbstractScanningModuleRegistry
 
     /**
      * Helper method to compare two versions the way RPM does it.
-     * Null comes first, then ordered by dot-separate 
-     * 
+     * Null comes first, then ordered by dot-separate
+     *
      * @param a: version 1 to compare
      * @param b: version 2 to compare
      * @return: -1, 0, or 1 like strcmp
@@ -717,7 +721,7 @@ public abstract class AbstractScanningModuleRegistry
         int two = 0;
         int i1;
         int i2;
-    
+
         // loop through each version segment of str1 and str2 and compare them
         while( one < aLen && two < bLen ) {
             while( one < aLen && !Character.isLetterOrDigit(a.charAt( one ))) {
@@ -753,7 +757,7 @@ public abstract class AbstractScanningModuleRegistry
                     ++i2;
                 }
                 isnum = true;
-                
+
             } else {
                 while( i1 < aLen && Character.isLetter(a.charAt( i1 ))) {
                     ++i1;
@@ -840,18 +844,18 @@ public abstract class AbstractScanningModuleRegistry
         }
         return ret;
     }
-    
+
     /**
      * The set of known ModuleMetas, keyed by artifactId and then by
      * groupId. Multiple  versions of the ModuleMeta are ordered with the newest first.
      */
     protected final Map<String,MiniModuleMetaMap> theMetas;
-    
+
     /**
      * Logger.
      */
     private static final Logger log = Logger.getLogger( AbstractScanningModuleRegistry.class.getName() );
-    
+
     /**
      * Name of the (optional) property in pom.xml that identifies the activation/deactivation class
      * in a Module JAR.

@@ -41,13 +41,27 @@ public class ScanningDirectoriesModuleRegistry
         AbstractScanningModuleRegistry
 {
     /**
-     * Factory method.
-     * 
+     * Factory method. Delegate the default set of classes to the system class loader.
+     *
      * @param dirs the directories to scan
      * @return the created ScanningDirectoriesModuleRegistry
      */
     public static ScanningDirectoriesModuleRegistry create(
             File [] dirs )
+    {
+        return create( dirs, AbstractModuleRegistry.DEFAULT_DO_NOT_LOAD_CLASS_PREFIXES );
+    }
+
+    /**
+     * Factory method.
+     *
+     * @param dirs the directories to scan
+     * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
+     * @return the created ScanningDirectoriesModuleRegistry
+     */
+    public static ScanningDirectoriesModuleRegistry create(
+            File []   dirs,
+            String [] doNotLoadClassPrefixes )
     {
         if( dirs == null || dirs.length == 0 ) {
             dirs = DEFAULT_MODULE_DIRECTORIES;
@@ -63,7 +77,7 @@ public class ScanningDirectoriesModuleRegistry
             if( !dirs[i].isDirectory() ) {
                 throw new IllegalArgumentException( "Not a directory: " + dirs[i].getAbsolutePath() );
             }
-            
+
             try {
                 List<JarFile> newJars = Files.walk( dirs[i].toPath() )
                         .filter( ( Path f ) -> {
@@ -83,13 +97,13 @@ public class ScanningDirectoriesModuleRegistry
 
             } catch( IOException ex ) {
                 log.log( Level.SEVERE, "I/O Error", ex );
-            }        
+            }
         }
 
         HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );
 
-        ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry( dirs, metas );
+        ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry( dirs, metas, doNotLoadClassPrefixes );
         return ret;
     }
 
@@ -98,19 +112,21 @@ public class ScanningDirectoriesModuleRegistry
      *
      * @param dirs the directories that were scanned
      * @param metas the ModuleMetas found during boot, keyed by their name, and then ordered by version
+     * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
      */
     protected ScanningDirectoriesModuleRegistry(
             File []                           dirs,
-            HashMap<String,MiniModuleMetaMap> metas )
+            HashMap<String,MiniModuleMetaMap> metas,
+            String []                         doNotLoadClassPrefixes )
     {
-        super( metas );
+        super( metas, doNotLoadClassPrefixes );
 
         theDirectories = dirs;
     }
-    
+
     /**
      * Determine the directories that were scanned.
-     * 
+     *
      * @return the directories
      */
     public File [] getScannedDirectories()
@@ -120,7 +136,7 @@ public class ScanningDirectoriesModuleRegistry
 
     /**
      * Obtain String representation.
-     * 
+     *
      * @return String representation
      */
     @Override
@@ -157,5 +173,5 @@ public class ScanningDirectoriesModuleRegistry
     /**
      * Logger.
      */
-    private static final Logger log = Logger.getLogger(ScanningDirectoriesModuleRegistry.class.getName() );    
+    private static final Logger log = Logger.getLogger(ScanningDirectoriesModuleRegistry.class.getName() );
 }
