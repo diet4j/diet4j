@@ -34,6 +34,17 @@ public abstract class AbstractModuleRegistry
         ModuleRegistry
 {
     /**
+     * Constructor.
+     *
+     * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
+     */
+    protected AbstractModuleRegistry(
+            String [] doNotLoadClassPrefixes )
+    {
+        theDoNotLoadClassPrefixes = doNotLoadClassPrefixes;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -229,7 +240,7 @@ public abstract class AbstractModuleRegistry
                     dependencyClassLoaders[i] = null;
                 }
             }
-            ret = new ModuleClassLoader( module, parentClassLoader, dependencyClassLoaders );
+            ret = new ModuleClassLoader( module, parentClassLoader, dependencyClassLoaders, theDoNotLoadClassPrefixes );
 
         } catch( MalformedURLException ex ) {
             log.log( Level.SEVERE, "Failed to create ModuleClassLoader for " + module, ex );
@@ -321,6 +332,11 @@ public abstract class AbstractModuleRegistry
     private ArrayList<ModuleRegistryListener> theModuleRegistryListeners = null;
 
     /**
+     * Always load classes with these prefixes through the default ClassLoader.
+     */
+    protected String [] theDoNotLoadClassPrefixes;
+
+    /**
      * This object is used as a semaphore for Module loads.
      */
     protected final Object RESOLVE_LOCK = new Object();
@@ -329,4 +345,38 @@ public abstract class AbstractModuleRegistry
      * Logger.
      */
     private static final Logger log = Logger.getLogger( AbstractModuleRegistry.class.getName() );
+
+    /**
+     * Only load classes with this prefix from the default ClassLoader.
+     * It would be really nice if those were easier to determine, but javax.servlet,
+     * for example, is defined in Jetty as well.
+     */
+    public static final String [] DEFAULT_DO_NOT_LOAD_CLASS_PREFIXES = {
+        "java.", // java
+        "javax.a",
+        "javax.c",
+        "javax.i",
+        "javax.j",
+        "javax.l",
+        "javax.m",
+        "javax.n",
+        "javax.p",
+        "javax.r",
+        "javax.script", // not servlet
+        "javax.sec",
+        "javax.so",
+        "javax.sql",
+        "javax.swing",
+        "javax.t",
+        "javax.x",
+        "com.sun.",
+        "sun", // sun, sunw
+        "org.diet4j.cmdline",
+        "org.diet4j.core",
+        "org.diet4j.tomcat",
+        "org.ietf.jgss",
+        "org.omg.",
+        "org.w3c.dom",
+        "org.xml.sax"
+    };
 }

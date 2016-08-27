@@ -66,10 +66,14 @@ public abstract class AbstractScanningModuleRegistry
      *
      * @param metas the ModuleMetas found, keyed by their artifactId, then by their groupId,
      *               and then ordered by version
+     * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
      */
     protected AbstractScanningModuleRegistry(
-            Map<String,MiniModuleMetaMap> metas )
+            Map<String,MiniModuleMetaMap> metas,
+            String []                     doNotLoadClassPrefixes )
     {
+        super( doNotLoadClassPrefixes );
+
         theMetas = metas;
     }
 

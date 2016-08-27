@@ -150,7 +150,7 @@ public class TomcatModuleLoader
         File [] dirArray = new File[ dirs.size() ];
         dirs.keySet().toArray( dirArray );
 
-        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( dirArray );
+        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( dirArray, TOMCAT_DO_NOT_LOAD_CLASS_PREFIXES );
 
         // I would have liked to invoke super.startInternal() last but that's the only way I can get at our ClassLoader.
         super.startInternal();
@@ -238,4 +238,22 @@ public class TomcatModuleLoader
      * The default directory in which the module JARs can be found.
      */
     public static final String DEFAULT_MODULEDIRECTORY = "/usr/lib/java";
+
+    /**
+     * Tomcat bundles certain libraries, so it needs a different set of class name prefixes
+     * not to load via diet4j.
+     */
+    public static final String [] TOMCAT_DO_NOT_LOAD_CLASS_PREFIXES = {
+        "java.", // java
+        "javax.",
+        "com.sun.",
+        "sun", // sun, sunw
+        "org.diet4j.cmdline",
+        "org.diet4j.core",
+        "org.diet4j.tomcat",
+        "org.ietf.jgss",
+        "org.omg.",
+        "org.w3c.dom",
+        "org.xml.sax"
+    };
 }

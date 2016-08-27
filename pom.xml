@@ -4,7 +4,7 @@
 
     <groupId>org.diet4j</groupId>
     <artifactId>diet4j</artifactId>
-    <version><!-- PKGVER -->0.14<!-- /PKGVER --></version>
+    <version><!-- PKGVER -->0.15<!-- /PKGVER --></version>
     <name>diet4j</name>
     <url>http://diet4j.org/</url>
     <packaging>pom</packaging>
@@ -133,16 +133,14 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                    <keyname>FBFBF0D2</keyname>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
-            <properties>
-                <gpg.keyname>3BB1CD74</gpg.keyname>
-                <gpg.defaultKeyring>true</gpg.defaultKeyring>
-                <gpg.useagent>true</gpg.useagent>
-            </properties>
         </profile>
     </profiles>
 

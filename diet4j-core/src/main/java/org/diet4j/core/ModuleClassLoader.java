@@ -57,16 +57,19 @@ public class ModuleClassLoader
       * @param mod the Module whose classes this ClassLoader will load
       * @param parent the parent ClassLoader of this ClassLoader
       * @param dependencyClassLoaders  the ModuleClassLoaders of the Module's dependent Modules
+      * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
       */
     public ModuleClassLoader(
             Module               mod,
             ClassLoader          parent,
-            ModuleClassLoader [] dependencyClassLoaders )
+            ModuleClassLoader [] dependencyClassLoaders,
+            String []            doNotLoadClassPrefixes )
     {
         super( parent );
 
         theModule                 = mod;
         theDependencyClassLoaders = dependencyClassLoaders;
+        theDoNotLoadClassPrefixes = doNotLoadClassPrefixes;
     }
 
     /**
@@ -155,7 +158,7 @@ public class ModuleClassLoader
 
         URL localResource = getResource( name );
         if( localResource != null ) {
-            return new CompoundIterator<URL>( localResource, parent.getResources( name ));
+            return new CompoundIterator<>( localResource, parent.getResources( name ));
         } else {
             return parent.getResources( name );
         }
@@ -186,7 +189,7 @@ public class ModuleClassLoader
             if( cannotFindTable.get( name ) == null ) {
 
                 ClassLoader consultDefaultClassLoader = null;
-                for( String prefix : MODULE_CLASSES_PREFIXES ) {
+                for( String prefix : theDoNotLoadClassPrefixes ) {
                     if( name.startsWith( prefix )) {
                         consultDefaultClassLoader = getClass().getClassLoader();
                         break; // we won't have more than one prefix match
@@ -516,6 +519,11 @@ public class ModuleClassLoader
     protected URLStreamHandler theStreamHandler;
 
     /**
+     * Always load classes with these prefixes through the default ClassLoader.
+     */
+    protected String [] theDoNotLoadClassPrefixes;
+
+    /**
      * This map maps names of resources that we know for sure we can't load to a
      * marker object, so we stop attempting to load here and not delegate.
      */
@@ -525,40 +533,6 @@ public class ModuleClassLoader
      * Marker object to be inserted into the cannotFindTable.
      */
     private static final Object CANNOT_FIND_OBJECT = new Object();
-
-    /**
-     * Only load classes with this prefix from the default ClassLoader.
-     * It would be really nice if those were easier to determine, but javax.servlet,
-     * for example, is defined in Jetty as well.
-     */
-    public static final String [] MODULE_CLASSES_PREFIXES = {
-        "java.", // java
-        "javax.a",
-        "javax.c",
-        "javax.i",
-        "javax.j",
-        "javax.l",
-        "javax.m",
-        "javax.n",
-        "javax.p",
-        "javax.r",
-        "javax.script", // not servlet
-        "javax.sec",
-        "javax.so",
-        "javax.sql",
-        "javax.swing",
-        "javax.t",
-        "javax.x",
-        "com.sun.",
-        "sun", // sun, sunw
-        "org.diet4j.cmdline",
-        "org.diet4j.core",
-        "org.diet4j.tomcat",
-        "org.ietf.jgss",
-        "org.omg.",
-        "org.w3c.dom",
-        "org.xml.sax"
-    };
 
     /**
      * Logger.
