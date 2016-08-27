@@ -122,7 +122,9 @@ public class Diet4jDaemon
         if( theRootModule != null ) {
             theRootModule.activateRecursively();
 
-            theRootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+            if( theRunClassName != null ) {
+                theRootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+            }
         }
     }
 
