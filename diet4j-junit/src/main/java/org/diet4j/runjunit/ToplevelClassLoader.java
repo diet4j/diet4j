@@ -77,7 +77,7 @@ public class ToplevelClassLoader
         Class c = findLoadedClass( name );
         if( c == null ) {
             closeReporting = true;
-            log.log( Level.FINER, "loadClassAttemptStart: {0} ({1})", new Object [] { theModule, name } );
+            log.log( Level.FINER, "loadClassAttemptStart: {0} ({1})", new Object [] { getClass().getName(), name } );
 
             if( cannotFindTable.get( name ) == null ) {
 
@@ -146,16 +146,16 @@ public class ToplevelClassLoader
             cannotFindTable.put( name, CANNOT_FIND_OBJECT );
 
             if( closeReporting ) {
-                log.log( Level.FINE, "loadClass failed: Module {0} (class: {1})", new Object[] { theModule, name } );
+                log.log( Level.FINE, "loadClass failed: Module {0} (class: {1})", new Object[] { getClass().getName(), name } );
             }
-            throw new ClassNotFoundException( name + " (ClassLoader for module " + theModule.toString() + ")" );
+            throw new ClassNotFoundException( name + " (" + getClass().getName() + ")" );
         }
 
         if( resolve ) {
             resolveClass( c );
         }
         if( closeReporting ) {
-            log.log( Level.FINER, "loadClass succeeded: {0} ({1})", new Object[] { theModule, name } );
+            log.log( Level.FINER, "loadClass succeeded: {0} ({1})", new Object[] { getClass().getName(), name } );
         }
 
         return c;
