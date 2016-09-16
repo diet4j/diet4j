@@ -56,7 +56,11 @@ public class NoClassDefFoundWithClassLoaderError
         StringBuilder buf = new StringBuilder();
         buf.append( super.toString() );
         buf.append( ": ClassLoader of Module " );
-        buf.append( theClassLoader.getModule().toString() );
+        if( theClassLoader.getModule() != null ) {
+            buf.append( theClassLoader.getModule().toString() );
+        } else {
+            buf.append( "? (" ).append( theClassLoader.getClass().getName() ).append( ")" );
+        }
 
         return buf.toString();
     }

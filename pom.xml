@@ -15,9 +15,10 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
         <module>diet4j-cmdline</module>
         <module>diet4j-core</module>
         <module>diet4j-inclasspath</module>
+        <module>diet4j-jsvc</module>
+        <module>diet4j-junit</module>
         <module>diet4j-status</module>
         <module>diet4j-tomcat</module>
-        <module>diet4j-jsvc</module>
     </modules>
 
     <build>
@@ -148,6 +149,8 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+
         <commons-daemon.version>1.0.9</commons-daemon.version>
+        <junit.version>4.12</junit.version>
     </properties>
 </project>

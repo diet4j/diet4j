@@ -386,8 +386,12 @@ public class ModuleClassLoader
      * Retrieve the package using the specified package name.
      * If non-null, verify the package using the specified code
      * source and manifest.
+     * 
+     * @param pkgname the name of the package
+     * @param man the applicable Manifest
+     * @param url the URL
      */
-    private Package getAndVerifyPackage(
+    protected Package getAndVerifyPackage(
             String   pkgname,
             Manifest man,
             URL      url )
@@ -532,7 +536,7 @@ public class ModuleClassLoader
     /**
      * Marker object to be inserted into the cannotFindTable.
      */
-    private static final Object CANNOT_FIND_OBJECT = new Object();
+    protected static final Object CANNOT_FIND_OBJECT = new Object();
 
     /**
      * Logger.
