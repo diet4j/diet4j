@@ -103,7 +103,16 @@ public class StatusMain
                         flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
 
             } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
-                log.severe( ex.getLocalizedMessage() );
+
+                StringBuilder msg = new StringBuilder();
+                msg.append( ex.getLocalizedMessage() );
+
+                Throwable cause = ex.getCause();
+                while( cause != null ) {
+                    msg.append( "\n    caused by: " ).append( cause.getLocalizedMessage() );
+                    cause = cause.getCause();
+                }
+                log.severe( msg.toString() );
             }
             return;
         }
