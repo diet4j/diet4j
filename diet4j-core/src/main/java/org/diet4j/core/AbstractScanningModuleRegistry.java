@@ -407,7 +407,7 @@ public abstract class AbstractScanningModuleRegistry
         String parentGroupId    = null;
         String parentVersion    = null;
 
-        ArrayList<ModuleRequirement> runTimeRequirements   = new ArrayList<>();
+        ArrayList<Object[]> runTimeRequirements = new ArrayList<>();
 
         NodeList rootChildren = root.getChildNodes();
         for( int i=0 ; i<rootChildren.getLength(); ++i ) {
@@ -522,13 +522,9 @@ public abstract class AbstractScanningModuleRegistry
                                     // ignore
 
                                 } else if( !"provided".equals( dependencyScope )) {
-                                    ModuleRequirement req = ModuleRequirement.create(
-                                            dependencyGroupdId,
-                                            dependencyArtifactId,
-                                            dependencyVersion,
-                                            isOptional ); // this may use symbolic names for version and groupId
-                                    runTimeRequirements.add( req );
-                                } // Just like Maven, we ignore "provided" modules
+                                     // Just like Maven, we ignore "provided" modules
+                                    runTimeRequirements.add( new Object[] { dependencyGroupdId, dependencyArtifactId, dependencyVersion, isOptional } );
+                                }
                             }
                         }
                     }
@@ -599,23 +595,27 @@ public abstract class AbstractScanningModuleRegistry
 
             // copy into arrays, and while we are at it, replace symbolic names in version and groupId where needed
             for( int i=0 ; i<runTime.length ; ++i ) {
-                ModuleRequirement current  = runTimeRequirements.get( i );
-                String            groupId  = current.getRequiredModuleGroupId();
-                String            version  = current.getUninterpretedRequiredModuleVersion();
-                String            groupId2 = replaceProperties( pomProperties, groupId );
-                String            version2 = version != null ? replaceProperties( pomProperties, version ) : null;
-
-                if(    ( version == null || version.equals( version2 ) )
-                    && groupId.equals( groupId2 ))
-                {
-                    runTime[i] = current;
-                } else {
-                    runTime[i] = ModuleRequirement.create(
-                            groupId2,
-                            current.getRequiredModuleArtifactId(),
-                            version2,
-                            current.isOptional() );
+                Object [] runTimeRequirement = runTimeRequirements.get( i );
+                String  dependencyGroupId    = (String)  runTimeRequirement[0];
+                String  dependencyArtifactId = (String)  runTimeRequirement[1];
+                String  dependencyVersion    = (String)  runTimeRequirement[2];
+                boolean isOptional           = (Boolean) runTimeRequirement[3];
+                
+                if( dependencyGroupId != null ) {
+                    dependencyGroupId = replaceProperties( pomProperties, dependencyGroupId );
                 }
+                if( dependencyArtifactId != null ) {
+                    dependencyArtifactId = replaceProperties( pomProperties, dependencyArtifactId );
+                }
+                if( dependencyVersion != null ) {
+                    dependencyVersion = replaceProperties( pomProperties, dependencyVersion );
+                }
+                
+                runTime[i] = ModuleRequirement.create(
+                        dependencyGroupId,
+                        dependencyArtifactId,
+                        dependencyVersion,
+                        isOptional ); // this may use symbolic names for version and groupId
             }
 
             String activationClassName = pomProperties.get( ACTIVATION_CLASS_PROPERTY );

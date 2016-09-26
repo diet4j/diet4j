@@ -132,11 +132,14 @@ public class ModuleRequirement
             String  requiredModuleVersion,
             boolean isOptional )
     {
-        if( requiredModuleGroupId != null && requiredModuleGroupId.isEmpty() ) {
-            throw new IllegalArgumentException( "Required module groupId must not be an empty string" );
+        if( requiredModuleGroupId != null && !MAVEN_ID_REGEX.matcher( requiredModuleGroupId ).matches() ) {
+            throw new IllegalArgumentException( "Required module groupId contains invalid characters: " + requiredModuleGroupId );
         }
         if( requiredModuleArtifactId == null || requiredModuleArtifactId.isEmpty() ) {
             throw new IllegalArgumentException( "Required module artifactId must not be null or an empty string" );
+        }
+        if( !MAVEN_ID_REGEX.matcher( requiredModuleArtifactId ).matches() ) {
+            throw new IllegalArgumentException( "Required module artifactId contains invalid characters: " + requiredModuleArtifactId );
         }
         if( requiredModuleVersion != null && requiredModuleVersion.isEmpty() ) {
             throw new IllegalArgumentException( "Required module version must not be an empty string" );
@@ -589,4 +592,10 @@ public class ModuleRequirement
      */
     public static Pattern MAVEN_VERSION_REGEX = Pattern.compile(
             "([\\[\\(])([^,\\[\\]\\(\\)]*),([^,\\[\\]\\(\\)]*)(\\]\\))" );
+    
+    /**
+     * The regex that groupId and artifactId strings must match.
+     */
+    public static Pattern MAVEN_ID_REGEX = Pattern.compile(
+            "[-a-zA-Z0-9._]+");
 }
