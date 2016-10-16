@@ -26,7 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A software Module. On an operating system level, this is usually called package.
+ * A Module. On an operating system level, this is usually called package.
  */
 public class Module
 {
@@ -38,9 +38,9 @@ public class Module
      * @param parentClassLoader the class loader of our parent Module
      */
     public Module(
-            ModuleMeta     meta,
+            ModuleMeta             meta,
             AbstractModuleRegistry registry,
-            ClassLoader    parentClassLoader )
+            ClassLoader            parentClassLoader )
     {
         if( meta == null ) {
             throw new NullPointerException( "Null ModuleMeta" );

@@ -33,16 +33,39 @@ public class NoClassDefFoundWithClassLoaderError
      * Constructs a <code>NoClassDefFoundError</code> with the specified
      * detail message.
      *
-     * @param s   the detail message.
+     * @param className the name of the Class that could not be loaded
+     * @param msg   the detail message.
      * @param loader the ModuleClassLoader that was used
      */
     public NoClassDefFoundWithClassLoaderError(
-            String            s,
+            String            className,
+            String            msg,
             ModuleClassLoader loader )
     {
-        super( s );
+        super( msg );
 
+        theClassName   = className;
         theClassLoader = loader;
+    }
+
+    /**
+     * Obtain the name of the Class that could not be loaded.
+     * 
+     * @return the name of the Class
+     */
+    public String getClassName()
+    {
+        return theClassName;
+    }
+
+    /**
+     * Obtain the ClassLoader that could not load the class.
+     * 
+     * @return the ClassLoader
+     */
+    public ModuleClassLoader getModuleClassLoader()
+    {
+        return theClassLoader;
     }
 
     /**
@@ -64,6 +87,11 @@ public class NoClassDefFoundWithClassLoaderError
 
         return buf.toString();
     }
+
+    /**
+     * Name of the Class that could not be loaded.
+     */
+    protected String theClassName;
 
     /**
      * The ClassLoader through which loading failed.

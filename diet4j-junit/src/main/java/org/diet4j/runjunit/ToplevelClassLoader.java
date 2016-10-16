@@ -116,7 +116,7 @@ public class ToplevelClassLoader
                                 throw ex; // just rethrow
 
                             } catch( NoClassDefFoundError ex ) {
-                                throw new NoClassDefFoundWithClassLoaderError( ex.getMessage(), this );
+                                throw new NoClassDefFoundWithClassLoaderError( name, ex.getMessage(), this );
 
                             } catch( ClassFormatError ex ) {
                                 log.log( Level.SEVERE, "loadClassAttemptStart: " + this + " (" + name + ")", ex );

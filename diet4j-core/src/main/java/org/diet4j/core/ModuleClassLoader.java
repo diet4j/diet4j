@@ -219,7 +219,6 @@ public class ModuleClassLoader
                                 String pkgName = name.substring( 0, lastDot );
 
                                 URL      url = new URL( "file://" + jar.getName() );
-
                                 Manifest man = jar.getManifest();
 
                                 if( getAndVerifyPackage( pkgName, man, url ) == null ) {
@@ -241,7 +240,7 @@ public class ModuleClassLoader
                         throw ex; // just rethrow
 
                     } catch( NoClassDefFoundError ex ) {
-                        throw new NoClassDefFoundWithClassLoaderError( ex.getMessage(), this );
+                        throw new NoClassDefFoundWithClassLoaderError( name, ex.getMessage(), this );
 
                     } catch( ClassFormatError ex ) {
                         log.log( Level.SEVERE, "loadClassAttemptStart: " + this + " (" + name + ")", ex );

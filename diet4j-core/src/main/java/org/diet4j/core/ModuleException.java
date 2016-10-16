@@ -29,7 +29,7 @@ public abstract class ModuleException
     private static final long serialVersionUID = 1L; // helps with serialization
 
     /**
-     * Constructor with causal Throwable.
+     * Constructor for subclasses only.
      *
      * @param meta the ModuleMeta of the Module that caused this Exception
      * @param cause the Throwable that caused this Exception
@@ -44,7 +44,7 @@ public abstract class ModuleException
     }
 
     /**
-     * Constructor with message and causal Throwable.
+     * Constructor for subclasses only.
      *
      * @param meta the ModuleMeta of the Module that caused this Exception
      * @param msg the message

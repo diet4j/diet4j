@@ -136,7 +136,7 @@ public abstract class CmdlineBootLoader
             rootModuleMeta = registry.determineSingleResolutionCandidate( theRootModuleRequirement );
 
         } catch( Throwable ex ) {
-            log.log( Level.SEVERE, "Cannot find module " + theRootModuleRequirement );
+            log.log( Level.SEVERE, "Cannot find module " + theRootModuleRequirement, ex );
             return 1;
         }
 
@@ -235,10 +235,7 @@ public abstract class CmdlineBootLoader
     protected static String [] theRunArguments;
 
     /**
-     * 
-    */
-    /**
      * Logger.
      */
-    private static final Logger log = Logger.getLogger(CmdlineBootLoader.class.getName() );
+    private static final Logger log = Logger.getLogger( CmdlineBootLoader.class.getName() );
 }

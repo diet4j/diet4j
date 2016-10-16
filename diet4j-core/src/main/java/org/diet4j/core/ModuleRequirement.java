@@ -40,7 +40,7 @@ public class ModuleRequirement
       * @return the created ModuleRequirement
       */
     public static ModuleRequirement create(
-            String  requiredModuleArtifactId )
+            String requiredModuleArtifactId )
     {
         return new ModuleRequirement( null, requiredModuleArtifactId, null, false );
     }
@@ -53,8 +53,8 @@ public class ModuleRequirement
       * @return the created ModuleRequirement
       */
     public static ModuleRequirement create(
-            String  requiredModuleGroupId,
-            String  requiredModuleArtifactId )
+            String requiredModuleGroupId,
+            String requiredModuleArtifactId )
     {
         return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, null, false );
     }

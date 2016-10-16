@@ -173,5 +173,5 @@ public class ScanningDirectoriesModuleRegistry
     /**
      * Logger.
      */
-    private static final Logger log = Logger.getLogger(ScanningDirectoriesModuleRegistry.class.getName() );
+    private static final Logger log = Logger.getLogger( ScanningDirectoriesModuleRegistry.class.getName() );
 }

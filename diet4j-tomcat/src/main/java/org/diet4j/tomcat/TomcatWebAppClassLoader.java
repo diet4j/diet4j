@@ -38,6 +38,11 @@ public class TomcatWebAppClassLoader
         extends
             WebappClassLoader
 {
+    /**
+     * Constructor.
+     * 
+     * @param parent the parent ClassLoader to use
+     */
     public TomcatWebAppClassLoader(
             ClassLoader parent )
     {
@@ -64,7 +69,7 @@ public class TomcatWebAppClassLoader
 
     /**
      * Obtain the JAR URLs for this ClassLoader.
-     * This is overriden so Tomcat can pass the right classpaths on to Jasper and javac.
+     * This is overridden so Tomcat can pass the right class paths on to Jasper and javac.
      *
      * @return the JAR URLs
      */
@@ -139,7 +144,7 @@ public class TomcatWebAppClassLoader
 
         URL localResource = getResource( name );
         if( localResource != null ) {
-            return new ModuleClassLoader.CompoundIterator<URL>( localResource, p.getResources( name ));
+            return new ModuleClassLoader.CompoundIterator<>( localResource, p.getResources( name ));
         } else {
             return p.getResources( name );
         }

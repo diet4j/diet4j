@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.jar.JarFile;
 
 /**
- * The metadata for a software Module.
+ * The metadata for a Module.
  */
 public class ModuleMeta
 {

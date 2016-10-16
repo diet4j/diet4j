@@ -21,7 +21,7 @@ package org.diet4j.core;
 
 /**
  * This exception indicates that a Module's specified run method was invoked, but
- * that the method threw an exception
+ * that the method threw an exception.
  */
 public class ModuleRunException
         extends
