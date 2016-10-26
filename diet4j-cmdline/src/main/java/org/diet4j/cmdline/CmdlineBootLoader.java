@@ -168,7 +168,7 @@ public abstract class CmdlineBootLoader
                 try {
                     rootModule.deactivateRecursively();
                 } catch( Throwable ex ) {
-                    log.log( Level.SEVERE, "Dectivation of module " + rootModuleMeta + " failed", ex );
+                    log.log( Level.SEVERE, "Deactivation of module " + rootModuleMeta + " failed", ex );
 
                     ret = 1;
                 }

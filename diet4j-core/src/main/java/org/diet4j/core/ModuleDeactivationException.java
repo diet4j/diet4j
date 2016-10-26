@@ -63,7 +63,7 @@ public class ModuleDeactivationException
     public String toString()
     {
         StringBuilder buf = new StringBuilder( 100 ); // fudge
-        buf.append( "ModuleDectivationException: could not deactivate Module " );
+        buf.append( "ModuleDeactivationException: could not deactivate Module " );
         if( theModuleMeta != null ) {
             buf.append( theModuleMeta.toString() );
         } else {
