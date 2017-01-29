@@ -573,7 +573,7 @@ public abstract class AbstractScanningModuleRegistry
         // if this is a JAR, do not add non-main artifacts that we might find in ~/.m2
         if( jar != null ) {
             String jarFileBaseName = jar.getName();
-            int    lastSlash       = jarFileBaseName.lastIndexOf( '/' );
+            int    lastSlash       = jarFileBaseName.lastIndexOf( File.separatorChar );
             if( lastSlash > 0 ) {
                 jarFileBaseName = jarFileBaseName.substring( lastSlash + 1 );
             }
