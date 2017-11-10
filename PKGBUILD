@@ -1,5 +1,5 @@
 pkgname=$(basename $(pwd))
-pkgver=0.15
+pkgver=0.16
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')
@@ -31,6 +31,10 @@ package() {
     # Command-line
     install -m755 -D ${startdir}/diet4j-cmdline/bin/diet4j ${pkgdir}/usr/bin/diet4j
     perl -pi -e "s/^VERSION=.*$/VERSION=\\\${DIET4J_VERSION:-${pkgver}}/" ${pkgdir}/usr/bin/diet4j
+
+    # JSVC
+    mkdir -p ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current
+    ln -s ../${pkgver}/diet4j-jsvc-${pkgver}.jar ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current/diet4j-jsvc-current.jar
 
     # Tomcat
     mkdir -p ${pkgdir}/usr/share/java/tomcat8

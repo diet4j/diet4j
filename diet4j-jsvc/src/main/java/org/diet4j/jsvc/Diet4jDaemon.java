@@ -103,6 +103,9 @@ public class Diet4jDaemon
         }
         try {
             theRootModule = theModuleRegistry.resolve( theRootModuleMeta );
+        } catch( ModuleResolutionException ex ) {
+            throw new DaemonInitException( "Cannot resolve module " + theRootModuleMeta.toString() + ": " + ex.getMessage() );
+
         } catch( Throwable ex ) {
             throw new DaemonInitException( "Cannot resolve module " + theRootModuleMeta.toString() );
         }
@@ -121,8 +124,10 @@ public class Diet4jDaemon
     {
         if( theRootModule != null ) {
             theRootModule.activateRecursively();
-
-            theRootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+            
+            if( theRunClassName != null || theRootModule.getModuleMeta().getRunClassName()  != null ) {
+                theRootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+            }
         }
     }
 

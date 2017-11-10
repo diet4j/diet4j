@@ -161,12 +161,7 @@ public class TomcatWebAppClassLoader
     public InputStream getResourceAsStream(
             String name )
     {
-        InputStream ret = findLoadedResource( name );
-        if( ret != null ) {
-            return ret;
-        }
-
-        ret = super.getResourceAsStream( name );
+        InputStream ret = super.getResourceAsStream( name );
         if( ret != null ) {
             return ret;
         }
@@ -191,13 +186,13 @@ public class TomcatWebAppClassLoader
      * @throws ClassNotFoundException loading the class failed, it could not be found
      */
     @Override
-    public synchronized Class loadClass(
+    public synchronized Class<?> loadClass(
             String  name,
             boolean resolve )
         throws
             ClassNotFoundException
     {
-        Class c = findLoadedClass( name );
+        Class<?> c = findLoadedClass( name );
         if( c == null ) {
             try {
                 c = super.loadClass( name, resolve );

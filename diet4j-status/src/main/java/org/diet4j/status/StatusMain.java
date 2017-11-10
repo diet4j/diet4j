@@ -161,6 +161,9 @@ public class StatusMain
                     } else {
                         out.print( "<?>" );
                     }
+                    out.print( " (" );
+                    out.print( meta.toString() );
+                    out.print( ")" );
                 }
             } catch( ParseException ex ) {
                 out.print( "<Cannot parse into ModuleRequirement>: " + name );

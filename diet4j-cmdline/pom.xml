@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.diet4j</groupId>
         <artifactId>diet4j</artifactId>
-        <version><!-- PKGVER -->0.15<!-- /PKGVER --></version>
+        <version><!-- PKGVER -->0.16<!-- /PKGVER --></version>
     </parent>
 
     <dependencies>
@@ -22,8 +22,8 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.6</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -35,8 +35,8 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.5.3</version>
                 <executions>
                     <execution>
                         <id>all</id>

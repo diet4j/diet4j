@@ -158,7 +158,9 @@ public abstract class CmdlineBootLoader
 
         if( rootModule != null ) {
             try {
-                ret = rootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+                if( theRunClassName != null || rootModule.getModuleMeta().getRunClassName() != null ) {
+                    ret = rootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+                }
 
             } catch( Throwable ex ) {
                 log.log( Level.SEVERE, "Run of module " + rootModuleMeta + " failed", ex );
