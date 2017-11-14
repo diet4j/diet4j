@@ -6,12 +6,16 @@ arch=('any')
 url="http://jdiet.org/"
 license=('Apache')
 makedepends=('maven' 'jdk8-openjdk' )
-depends=('java-runtime=8' 'java-jsvc')
+depends=('java-runtime=9' 'java-jsvc')
 
 prepare() {
     # Set pom.xml versions correctly; depends on XML-comment-based markup in pom.xml files
     # This is a great big hack, but does the job
     find ${startdir} -path ${startdir}/pkg -prune -o -name pom.xml -exec perl -pi -e "s/(?<=\<\!-- PKGVER -->)(\d+(\.\d+)+)(?=\<\!-- \/PKGVER -->)/${pkgver}/g" {} \;
+
+    # Also do this for run files
+    perl -pi -e "s/^VERSION=.*$/VERSION=\\\${DIET4J_VERSION:-${pkgver}}/" ${startdir}/diet4j-cmdline/bin/diet4j
+    perl -pi -e "s/^Environment='DIET4J_VERSION=.*\$/Environment=\'DIET4J_VERSION=${pkgver}'/" ${startdir}/diet4j-jsvc/systemd/diet4j-jsvc@.service
 }
 
 build() {
@@ -39,6 +43,10 @@ package() {
     # Tomcat
     mkdir -p ${pkgdir}/usr/share/java/tomcat8
     ln -s /usr/lib/java/org/diet4j/diet4j-tomcat/${pkgver}/diet4j-tomcat-${pkgver}.jar ${pkgdir}/usr/share/java/tomcat8/diet4j-tomcat-${pkgver}.jar
+
+    # Systemd
+    mkdir -p ${pkgdir}/usr/lib/systemd/system
+    install -m 644 ${startdir}/diet4j-jsvc/systemd/diet4j-jsvc@.service -t ${pkgdir}/usr/lib/systemd/system
 }
 
 installOne() {

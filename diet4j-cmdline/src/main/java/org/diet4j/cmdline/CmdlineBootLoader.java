@@ -20,10 +20,14 @@
 package org.diet4j.cmdline;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.ParseException;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.diet4j.cmdline.CmdlineParameters.Parameter;
@@ -65,7 +69,15 @@ public abstract class CmdlineBootLoader
             System.exit( ret );
 
         } catch( Throwable ex ) {
-            fatal( "Something bad happened:" + ( ex.getMessage() != null ? ex.getMessage() : ex.toString() ));
+            
+            StringWriter sw = new StringWriter();
+            PrintWriter  pw = new PrintWriter( sw );
+
+            pw.append( "Something bad happened that should not have:\n" );
+            ex.printStackTrace( pw );            
+            pw.flush();
+            
+            fatal( sw.toString() );
         }
     }
     
@@ -82,8 +94,9 @@ public abstract class CmdlineBootLoader
         CmdlineParameters parameters = new CmdlineParameters(
             new Parameter( "help",      0 ),
             new Parameter( "directory", 1, true ),
-            new Parameter( "run",       1 ),
-            new Parameter( "method",    1 )
+            new Parameter( "runclass",  1 ),
+            new Parameter( "runmethod", 1 ),
+            new Parameter( "config",    1 )
         );
 
         String [] remaining = parameters.parse( args );
@@ -92,32 +105,102 @@ public abstract class CmdlineBootLoader
             helpAndQuit();
         }
 
-        if( remaining.length < 1 ) {
-            fatal( "Must provide the name of one root module" );
+        // split module names and arguments
+        int dashDash = remaining.length;
+        for( int i=0 ; i<remaining.length ; ++i ) {
+            if( "--".equals( remaining[i] )) {
+                dashDash = i;
+                break;
+            }
         }
-        try {
-            theRootModuleRequirement = ModuleRequirement.parse( remaining[0] );
-        } catch( ParseException ex ) {
-            fatal( ex.getLocalizedMessage() );
+        String [] moduleNames = new String[ dashDash ];
+        System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
+ 
+        if( dashDash >= remaining.length-1 ) {
+            theRunArguments = new String[0];
+        } else {
+            theRunArguments = new String[ remaining.length - dashDash - 1 ];
+            System.arraycopy( remaining, dashDash+1, theRunArguments, 0 , theRunArguments.length );
         }
 
-        theRunArguments = new String[ remaining.length-1 ];
-        System.arraycopy( remaining, 1, theRunArguments, 0, theRunArguments.length );
+        theRunClassName  = parameters.get( "run" );
+        theRunMethodName = parameters.get( "method" );
 
-        String [] dirs = parameters.getMany( "directory" );
+        String [] directories = parameters.getMany( "directory" );
+
+        String config = parameters.get( "config" );
+        if( config != null ) {
+            Properties configProps = new Properties();
+
+            try ( FileInputStream configStream = new FileInputStream( config ) ) {
+                configProps.load(configStream);
+
+            } catch( IOException ex ) {
+                fatal( "Cannot read config file: " + config );
+            }
+
+            if( configProps.containsKey( "diet4j!directory" )) {
+                if( directories != null ) {
+                    fatal( "Specified both as argument and in config file: directory" );
+                }
+                directories = configProps.getProperty( "diet4j!directory" ).split( "[,\\s]+" );
+                // FIXME: no spaces or commas in file names
+            }
+            if( configProps.containsKey( "diet4j!module" )) {
+                if( moduleNames != null ) {
+                    fatal( "Specified both as argument and in config file: module" );
+                }
+                moduleNames = configProps.getProperty( "diet4j!module" ).split( "[,\\s]+" );
+                // FIXME: no spaces or commas in file names
+            }
+            if( configProps.containsKey( "diet4j!runclass" )) {
+                if( theRunClassName != null ) {
+                    fatal( "Specified both as argument and in config file: runclass" );
+                }
+                theRunClassName = configProps.getProperty( "diet4j!runclass" );
+            }
+            if( configProps.containsKey( "diet4j!runmethod" )) {
+                if( theRunMethodName != null ) {
+                    fatal( "Specified both as argument and in config file: runmethod" );
+                }
+                theRunMethodName = configProps.getProperty( "diet4j!runmethod" );
+            }
+            if( configProps.containsKey( "diet4j!runarg" )) {
+                if( theRunArguments != null ) {
+                    fatal( "Specified both as argument and in config file: arg" );
+                }
+                theRunArguments = configProps.getProperty( "diet4j!runarg" ).split( "[,\\s]+" );
+                // FIXME: this currently does not allow quotes to be used to keep white space or such
+            }
+        }
+        if( moduleNames == null || moduleNames.length == 0 ) {
+            fatal( "No root module given" );
+            return; // won't happen, but make IDE happy
+        }
+
+        theModuleRequirements = new ModuleRequirement[ moduleNames.length ];
+        for( int i=0 ; i<moduleNames.length ; ++i ) {
+            try {
+                theModuleRequirements[i] = ModuleRequirement.parse( moduleNames[i] );
+            } catch( ParseException ex ) {
+                fatal( ex.getLocalizedMessage() );
+            }
+        }
+
         HashSet<File> fileDirs = new HashSet<>();
-        if( dirs != null ) {
-            for( String dir : dirs ) {
+        if( directories != null ) {
+            for( String dir : directories ) {
                 if( !fileDirs.add( new File( dir ).getCanonicalFile() )) {
                     fatal( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + dir );
                 }
             }
         }
-        theModuleDirectories = new File[ fileDirs.size() ];
-        fileDirs.toArray( theModuleDirectories );
+        theDirectories = new File[ fileDirs.size() ];
+        fileDirs.toArray(theDirectories );
 
-        theRunClassName  = parameters.get( "run" );
-        theRunMethodName = parameters.get( "method" );
+        if( theRunArguments == null ) {
+            theRunArguments = new String[0];
+        }
     }
 
     /**
@@ -128,53 +211,63 @@ public abstract class CmdlineBootLoader
     static int activateRunDeactivate()
     {
         // create ModuleRegistry
-        ModuleRegistry registry = ScanningDirectoriesModuleRegistry.create( theModuleDirectories );
+        ModuleRegistry registry = ScanningDirectoriesModuleRegistry.create(theDirectories );
 
-        // find and resolve the main module
-        ModuleMeta rootModuleMeta;
+        // find and resolve modules
+        ModuleMeta [] theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
+        Module []     theModules     = new Module[     theModuleRequirements.length ];
+
+        int ret = 0;
         try {
-            rootModuleMeta = registry.determineSingleResolutionCandidate( theRootModuleRequirement );
-
-        } catch( Throwable ex ) {
-            log.log( Level.SEVERE, "Cannot find module " + theRootModuleRequirement, ex );
-            return 1;
-        }
-
-        Module rootModule;
-        int ret;
-        try {
-            rootModule = registry.resolve( rootModuleMeta );
-
-            rootModule.activateRecursively();
-            
-            ret = 0;
-
-        } catch( Throwable ex ) {
-            log.log( Level.SEVERE, "Activation of module " + rootModuleMeta + " failed", ex );
-            
-            rootModule = null;
-            ret = 1;
-        }
-
-        if( rootModule != null ) {
-            try {
-                if( theRunClassName != null || rootModule.getModuleMeta().getRunClassName() != null ) {
-                    ret = rootModule.run( theRunClassName, theRunMethodName, theRunArguments );
-                }
-
-            } catch( Throwable ex ) {
-                log.log( Level.SEVERE, "Run of module " + rootModuleMeta + " failed", ex );
-                ret = 1;
-
-            } finally {
+            for( int i=0 ; i<theModuleMetas.length ; ++i ) {
                 try {
-                    rootModule.deactivateRecursively();
+                    theModuleMetas[i] = registry.determineSingleResolutionCandidate( theModuleRequirements[i] );
+
                 } catch( Throwable ex ) {
-                    log.log( Level.SEVERE, "Dectivation of module " + rootModuleMeta + " failed", ex );
+                    fatal( "Cannot find module " + theModuleRequirements[i], ex );
+                }
+            }
+
+            for( int i=0 ; i<theModuleMetas.length ; ++i ) {
+                try {
+                    theModules[i] = registry.resolve( theModuleMetas[i] );
+                    theModules[i].activateRecursively();
+
+                } catch( Throwable ex ) {
+                    log.log( Level.SEVERE, "Activation of module " + theModuleMetas[i] + " failed", ex );
+
+                    ret = 1;
+                    break;
+                }
+            }
+
+            if( ret == 0 ) {
+                try {
+                    if( theRunClassName != null || theModules[0].getModuleMeta().getRunClassName() != null ) {
+                        ret = theModules[0].run( theRunClassName, theRunMethodName, theRunArguments );
+                    }
+
+                } catch( Throwable ex ) {
+                    log.log( Level.SEVERE, "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
+                    ret = 1;
+
+                }            
+            }
+
+        } finally {
+            for( int i=theModules.length-1 ; i>=0 ; --i ) {
+                if( theModules[i] == null ) {
+                    continue;
+                }
+                try {
+                    theModules[i].deactivateRecursively();
+
+                } catch( Throwable ex ) {
+                    log.log( Level.SEVERE, "Dectivation of module " + theModules[i].getModuleMeta() + " failed", ex );
 
                     ret = 1;
                 }
-            }            
+            }
         }
         return ret;
     }
@@ -187,18 +280,30 @@ public abstract class CmdlineBootLoader
         PrintStream w = System.out;
         
         w.println( "Synopsis: (diet4j-core " + Version.VERSION + ", built " + Version.BUILDTIME + ")" );
-        w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <rootmodule> [ <arg> ... ] " );
+        w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
         w.println( "    where:" );
-        w.println( "       <directory>:  directory in which to look for modules" );
-        w.println( "       <class>:      name of a non-default class whose main() method to run" );
-        w.println( "       <method>:     name of a method in the run class to run, instead of main()" );
-        w.println( "       <rootmodule>: name of the root module to activate, given as groupId:artifactId:version or groupId:artifactId" );
-        w.println( "       <arg> ...:    argument(s) to the main() method of the run class" );
-        w.println( "--help: this message" );
+        w.println( "        <directory>:  directory in which to look for modules" );
+        w.println( "        <runclass>:   name of a non-default class whose main() method to run, instead of the rootmodule's" );
+        w.println( "        <runmethod>:  name of a method in the run class to run, instead of main()" );
+        w.println( "        <module>:     name of the module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
+        w.println( "                      The first specified module is the module that is run unless <runclass> is given" );
+        w.println( "        <runarg> ...: argument(s) to the main() method of the run class" );
+        w.println( "--config <configfile>" );
+        w.println( "    where:" );
+        w.println( "        <configfile>: name of a properties file containing the above values as properties" );
+        w.println( "    names of the properties:" );
+        w.println( "        diet4j!directory: comma or space-separated list of directories in which to look for modules" );
+        w.println( "        diet4j!runclass:  name of a non-default class whose main() method to run, instead of the rootmodule's" );
+        w.println( "        diet4j!runmethod: name of a method in the run class to run, instead of main()" );
+        w.println( "        diet4j!module:    comma or space-separated list of module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
+        w.println( "                          The first specified module is the module that is run unless <runclass> is given" );
+        w.println( "        diet4j!runarg:    comma or space-separated argument(s) to the main() method of the run class" );
+        w.println( "--help:" );
+        w.println( "    this message" );
         w.flush();
         System.exit( 0 );
     }
-    
+
     /**
      * Print fatal error and quit.
      * 
@@ -212,9 +317,23 @@ public abstract class CmdlineBootLoader
     }
 
     /**
+     * Print fatal error and quit.
+     * 
+     * @param msg the error message
+     * @param cause what happened
+     */
+    public static void fatal(
+            String    msg,
+            Throwable cause )
+    {
+        log.log( Level.SEVERE, msg, cause );
+        System.exit( 1 );
+    }
+
+    /**
      * The paths to the Module JAR files.
      */
-    protected static File [] theModuleDirectories;
+    protected static File [] theDirectories;
 
     /**
      * The name of the run class in the root Module, if specified on the command-line.
@@ -227,9 +346,9 @@ public abstract class CmdlineBootLoader
     protected static String theRunMethodName;
 
     /**
-     * The ModuleRequirement for the root Module to start.
+     * The ModuleRequirements to activate.
      */
-    protected static ModuleRequirement theRootModuleRequirement;
+    protected static ModuleRequirement [] theModuleRequirements;
 
     /**
      * The arguments to the run

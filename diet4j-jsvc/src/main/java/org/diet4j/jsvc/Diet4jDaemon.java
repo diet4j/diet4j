@@ -20,10 +20,14 @@
 package org.diet4j.jsvc;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.util.HashSet;
+import java.util.Properties;
+import java.util.logging.Level;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.apache.commons.daemon.DaemonInitException;
@@ -55,59 +59,128 @@ public class Diet4jDaemon
     {
         CmdlineParameters parameters = new CmdlineParameters(
             new CmdlineParameters.Parameter( "directory", 1, true ),
-            new CmdlineParameters.Parameter( "run",       1 ),
-            new CmdlineParameters.Parameter( "method",    1 )
+            new CmdlineParameters.Parameter( "runclass",  1 ),
+            new CmdlineParameters.Parameter( "runmethod", 1 ),
+            new CmdlineParameters.Parameter( "config",    1 )
         );
 
         String [] remaining = parameters.parse( dc.getArguments() );
-        if( remaining.length < 1 ) {
-            throw new DaemonInitException( "Must provide the name of one root module" );
-        }
 
-        try {
-            theRootModuleRequirement = ModuleRequirement.parse( remaining[0] );
-        } catch( ParseException ex ) {
-            throw new DaemonInitException( "Failed to parse root module requirement " + remaining[0], ex );
-        }
-
-        theRunArguments = new String[ remaining.length-1 ];
-        System.arraycopy( remaining, 1, theRunArguments, 0, theRunArguments.length );
-
-        String [] dirs = parameters.getMany( "directory" );
-        HashSet<File> fileDirs = new HashSet<>();
-        if( dirs != null ) {
-            for( String dir : dirs ) {
-                try {
-                    if( !fileDirs.add( new File( dir ).getCanonicalFile() )) {
-                        throw new DaemonInitException( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + dir );
-                    }
-                } catch( IOException ex ) {
-                    throw new DaemonInitException( "Failed to read directory " + dir, ex );
-                }
+        // split module names and arguments
+        int dashDash = remaining.length;
+        for( int i=0 ; i<remaining.length ; ++i ) {
+            if( "--".equals( remaining[i] )) {
+                dashDash = i;
+                break;
             }
         }
-        theModuleDirectories = new File[ fileDirs.size() ];
-        fileDirs.toArray( theModuleDirectories );
+        String [] moduleNames = new String[ dashDash ];
+        System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
+ 
+        if( dashDash >= remaining.length-1 ) {
+            theRunArguments = new String[0];
+        } else {
+            theRunArguments = new String[ remaining.length - dashDash - 1 ];
+            System.arraycopy( remaining, dashDash+1, theRunArguments, 0 , theRunArguments.length );
+        }
 
         theRunClassName  = parameters.get( "run" );
         theRunMethodName = parameters.get( "method" );
 
-        // create ModuleRegistry
-        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( theModuleDirectories );
+        String [] directories = parameters.getMany( "directory" );
 
-        try {
-            theRootModuleMeta = theModuleRegistry.determineSingleResolutionCandidate( theRootModuleRequirement );
+        String config = parameters.get( "config" );
+        if( config != null ) {
+            Properties configProps = new Properties();
 
-        } catch( Throwable ex ) {
-            throw new DaemonInitException( "Cannot find module " + theRootModuleRequirement );
+            try ( FileInputStream configStream = new FileInputStream( config ) ) {
+                configProps.load(configStream);
+
+            } catch( IOException ex ) {
+                fatal( "Cannot read config file: " + config );
+            }
+
+            if( configProps.containsKey( "diet4j!directory" )) {
+                if( directories != null ) {
+                    fatal( "Specified both as argument and in config file: directory" );
+                }
+                directories = configProps.getProperty( "diet4j!directory" ).split( "[,\\s]+" );
+                // FIXME: no spaces or commas in file names
+            }
+            if( configProps.containsKey( "diet4j!module" )) {
+                if( moduleNames != null ) {
+                    fatal( "Specified both as argument and in config file: module" );
+                }
+                moduleNames = configProps.getProperty( "diet4j!module" ).split( "[,\\s]+" );
+                // FIXME: no spaces or commas in file names
+            }
+            if( configProps.containsKey( "diet4j!runclass" )) {
+                if( theRunClassName != null ) {
+                    fatal( "Specified both as argument and in config file: runclass" );
+                }
+                theRunClassName = configProps.getProperty( "diet4j!runclass" );
+            }
+            if( configProps.containsKey( "diet4j!runmethod" )) {
+                if( theRunMethodName != null ) {
+                    fatal( "Specified both as argument and in config file: runmethod" );
+                }
+                theRunMethodName = configProps.getProperty( "diet4j!runmethod" );
+            }
+            if( configProps.containsKey( "diet4j!runarg" )) {
+                if( theRunArguments != null ) {
+                    fatal( "Specified both as argument and in config file: arg" );
+                }
+                theRunArguments = configProps.getProperty( "diet4j!runarg" ).split( "[,\\s]+" );
+                // FIXME: this currently does not allow quotes to be used to keep white space or such
+            }
         }
-        try {
-            theRootModule = theModuleRegistry.resolve( theRootModuleMeta );
-        } catch( ModuleResolutionException ex ) {
-            throw new DaemonInitException( "Cannot resolve module " + theRootModuleMeta.toString() + ": " + ex.getMessage() );
+        if( moduleNames == null || moduleNames.length == 0 ) {
+            fatal( "No root module given" );
+            return; // won't happen, but make IDE happy
+        }
+        
+        theModuleRequirements = new ModuleRequirement[ moduleNames.length ];
+        for( int i=0 ; i<moduleNames.length ; ++i ) {
+            try {
+                theModuleRequirements[i] = ModuleRequirement.parse( moduleNames[i] );
+            } catch( ParseException ex ) {
+                fatal( ex.getLocalizedMessage() );
+            }
+        }
 
-        } catch( Throwable ex ) {
-            throw new DaemonInitException( "Cannot resolve module " + theRootModuleMeta.toString() );
+        HashSet<File> fileDirs = new HashSet<>();
+        if( directories != null ) {
+            for( String dir : directories ) {
+                try {
+                    if( !fileDirs.add( new File( dir ).getCanonicalFile() )) {
+                        fatal( "Directory (indirectly?) specified more than once in moduledirectory parameter: " + dir );
+                    }
+                } catch( IOException ex ) {
+                    fatal( "Failed to read directory " + dir, ex );
+                }
+            }
+        }
+        theDirectories = new File[ fileDirs.size() ];
+        fileDirs.toArray( theDirectories );
+
+        if( theRunArguments == null ) {
+            theRunArguments = new String[0];
+        }
+
+        // create ModuleRegistry
+        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( theDirectories );
+
+        // find and resolve modules
+        ModuleMeta [] theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
+        Module []     theModules     = new Module[     theModuleRequirements.length ];
+
+        for( int i=0 ; i<theModuleMetas.length ; ++i ) {
+            try {
+                theModuleMetas[i] = registry.determineSingleResolutionCandidate( theModuleRequirements[i] );
+
+            } catch( Throwable ex ) {
+                fatal( "Cannot find module " + theModuleRequirements[i], ex );
+            }
         }
     }
 
@@ -122,13 +195,24 @@ public class Diet4jDaemon
             NoRunMethodException,
             InvocationTargetException
     {
-        if( theRootModule != null ) {
-            theRootModule.activateRecursively();
-            
-            if( theRunClassName != null || theRootModule.getModuleMeta().getRunClassName()  != null ) {
-                theRootModule.run( theRunClassName, theRunMethodName, theRunArguments );
+        for( int i=0 ; i<theModuleMetas.length ; ++i ) {
+            try {
+                theModules[i] = registry.resolve( theModuleMetas[i] );
+                theModules[i].activateRecursively();
+
+            } catch( Throwable ex ) {
+                fatal( "Activation of module " + theModuleMetas[i] + " failed", ex );
             }
         }
+
+        try {
+            if( theRunClassName != null || theModules[0].getModuleMeta().getRunClassName() != null ) {
+                theModules[0].run( theRunClassName, theRunMethodName, theRunArguments );
+            }
+
+        } catch( Throwable ex ) {
+            fatal( "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
+        }                    
     }
 
     @Override
@@ -136,8 +220,22 @@ public class Diet4jDaemon
         throws
             ModuleDeactivationException
     {
-        if( theRootModule != null ) {
-            theRootModule.deactivateRecursively();
+        Throwable thrown = null;
+        Module    failed = null;
+        for( int i=theModules.length-1 ; i>=0 ; --i ) {
+            if( theModules[i] == null ) {
+                continue;
+            }
+            try {
+                theModules[i].deactivateRecursively();
+
+            } catch( Throwable ex ) {
+                failed = theModules[i];
+                thrown = ex;
+            }
+        }
+        if( thrown != null ) {
+            fatal( "Dectivation of module " + failed.getModuleMeta() + " failed", thrown );
         }
     }
 
@@ -147,12 +245,67 @@ public class Diet4jDaemon
         // no op
     }
 
-    protected Module theRootModule;
-    protected ModuleMeta theRootModuleMeta;
+    /**
+     * Something fatal has happened.
+     * 
+     * @param msg the message
+     */
+    protected static void fatal(
+            String msg )
+    {
+        fatal( msg, null );
+    }
+    
+    /**
+     * Something fatal has happened that had a cause.
+     * 
+     * @param msg the message
+     * @param cause the cause
+     */
+    protected static void fatal(
+            String    msg,
+            Throwable cause )
+    {
+        thrown new DaemonInitException( msg, cause );
+    }
+
+    /**
+     * The ModuleRegistry.
+     */
     protected ModuleRegistry theModuleRegistry;
-    protected ModuleRequirement theRootModuleRequirement;
-    protected String [] theRunArguments;
-    protected File [] theModuleDirectories;
-    protected String theRunClassName;
-    protected String theRunMethodName;
+
+    /**
+     * The ModuleMetas.
+     */
+    protected ModuleMeta [] theModuleMetas;
+
+    /**
+     * All Modules once they have been resolved.
+     */
+    protected Module [] theModules;
+
+    /**
+     * The paths to the Module JAR files.
+     */
+    protected static File [] theDirectories;
+
+    /**
+     * The name of the run class in the root Module, if specified on the command-line.
+     */
+    protected static String theRunClassName;
+
+    /**
+     * The name of the run method in the run class, if specified on the command-line.
+     */
+    protected static String theRunMethodName;
+
+    /**
+     * The ModuleRequirements to activate.
+     */
+    protected static ModuleRequirement [] theModuleRequirements;
+
+    /**
+     * The arguments to the run
+     */
+    protected static String [] theRunArguments;
 }
