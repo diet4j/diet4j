@@ -113,11 +113,16 @@ public abstract class CmdlineBootLoader
                 break;
             }
         }
-        String [] moduleNames = new String[ dashDash ];
-        System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
+        String [] moduleNames;
+        if( dashDash > 0 ) {
+            moduleNames = new String[ dashDash ];
+            System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
+        } else {
+            moduleNames = null;
+        }
  
         if( dashDash >= remaining.length-1 ) {
-            theRunArguments = new String[0];
+            theRunArguments = null;
         } else {
             theRunArguments = new String[ remaining.length - dashDash - 1 ];
             System.arraycopy( remaining, dashDash+1, theRunArguments, 0 , theRunArguments.length );

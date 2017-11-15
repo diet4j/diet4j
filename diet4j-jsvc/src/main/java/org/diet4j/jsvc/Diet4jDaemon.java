@@ -21,13 +21,11 @@ package org.diet4j.jsvc;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Properties;
-import java.util.logging.Level;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.apache.commons.daemon.DaemonInitException;
@@ -171,12 +169,11 @@ public class Diet4jDaemon
         theModuleRegistry = ScanningDirectoriesModuleRegistry.create( theDirectories );
 
         // find and resolve modules
-        ModuleMeta [] theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
-        Module []     theModules     = new Module[     theModuleRequirements.length ];
+        theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
 
         for( int i=0 ; i<theModuleMetas.length ; ++i ) {
             try {
-                theModuleMetas[i] = registry.determineSingleResolutionCandidate( theModuleRequirements[i] );
+                theModuleMetas[i] = theModuleRegistry.determineSingleResolutionCandidate( theModuleRequirements[i] );
 
             } catch( Throwable ex ) {
                 fatal( "Cannot find module " + theModuleRequirements[i], ex );
@@ -193,11 +190,12 @@ public class Diet4jDaemon
             ClassNotFoundException,
             ModuleRunException,
             NoRunMethodException,
-            InvocationTargetException
+            InvocationTargetException,
+            DaemonInitException
     {
         for( int i=0 ; i<theModuleMetas.length ; ++i ) {
             try {
-                theModules[i] = registry.resolve( theModuleMetas[i] );
+                theModules[i] = theModuleRegistry.resolve( theModuleMetas[i] );
                 theModules[i].activateRecursively();
 
             } catch( Throwable ex ) {
@@ -218,7 +216,8 @@ public class Diet4jDaemon
     @Override
     public void stop()
         throws
-            ModuleDeactivationException
+            ModuleDeactivationException,
+            DaemonInitException
     {
         Throwable thrown = null;
         Module    failed = null;
@@ -234,7 +233,7 @@ public class Diet4jDaemon
                 thrown = ex;
             }
         }
-        if( thrown != null ) {
+        if( failed != null ) {
             fatal( "Dectivation of module " + failed.getModuleMeta() + " failed", thrown );
         }
     }
@@ -249,9 +248,12 @@ public class Diet4jDaemon
      * Something fatal has happened.
      * 
      * @param msg the message
+     * @throws DaemonInitException tell the daemon about it, always thrown
      */
     protected static void fatal(
             String msg )
+        throws
+            DaemonInitException
     {
         fatal( msg, null );
     }
@@ -261,12 +263,16 @@ public class Diet4jDaemon
      * 
      * @param msg the message
      * @param cause the cause
+     * @throws DaemonInitException tell the daemon about it, always thrown
      */
     protected static void fatal(
             String    msg,
             Throwable cause )
+        throws
+            DaemonInitException
+
     {
-        thrown new DaemonInitException( msg, cause );
+        throw new DaemonInitException( msg, cause );
     }
 
     /**

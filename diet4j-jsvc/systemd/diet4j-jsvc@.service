@@ -17,7 +17,7 @@ Environment='OUTFILE=SYSLOG'
 Environment='PIDFILE=/var/run/diet4j-jsvc-%i.pid'
 Environment='JAVA_HOME=/usr/lib/jvm/default-runtime'
 Environment='JSVC_OPTS=-debug -nodetach -Djava.io.tmpdir=/var/tmp/diet4j-jsvc-%i'
-# Environment='DEBUG_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y'
+# Environment='DEBUG_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,address=*:8888,server=y,suspend=y'
 Environment='DIET4J_VERSION=0.16'
 Environment='DIET4J_ARGS=--directory /usr/lib/java --config /etc/diet4j/diet4j-jsvc-%i.properties'
 
