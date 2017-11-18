@@ -137,12 +137,12 @@ public abstract class AbstractModuleRegistry
                         }
                     }
                 }
-                ret = meta.createModule( this, getClass().getClassLoader() );
+                ret = meta.createModule( getModuleSettingsFor( meta ), this, getClass().getClassLoader() );
 
                 if( ret != null ) {
                     theModules.put( meta, ret );
 
-                    if( recursive ) {
+                    if( recursive && dependentModules != null ) { // second half: make IDE happy
                         theForwardRuntimeDependencies.put( ret, dependentModules );
 
                         for( int i=0 ; i<dependentModules.length ; ++i ) {
@@ -247,6 +247,15 @@ public abstract class AbstractModuleRegistry
         }
         return ret;
     }
+
+    /**
+     * Obtain the ModuleSettings object for a given ModuleMeta.
+     *
+     * @param meta the ModuleMeta
+     * @return the ModuleSettings
+     */
+    protected abstract ModuleSettings getModuleSettingsFor(
+            ModuleMeta meta );
 
     /**
      * {@inheritDoc}

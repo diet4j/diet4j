@@ -20,9 +20,12 @@
 package org.diet4j.tomcat;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
 import org.apache.catalina.loader.WebappLoader;
@@ -31,6 +34,7 @@ import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
 import org.diet4j.core.ModuleResolutionException;
+import org.diet4j.core.ModuleSettings;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
 
 /**
@@ -85,7 +89,7 @@ public class TomcatModuleLoader
     public void setRootmodule(
             String newValue )
     {
-        theRootmodule = newValue;
+        theModulenames = newValue;
     }
 
     /**
@@ -96,7 +100,7 @@ public class TomcatModuleLoader
      */
     public String getRootmodule()
     {
-        return theRootmodule;
+        return theModulenames;
     }
 
     /**
@@ -123,6 +127,29 @@ public class TomcatModuleLoader
     }
 
     /**
+     * Set the config file.
+     *
+     * @param file the config file name
+     * @see #getConfig
+     */
+    public void setConfig(
+            String file )
+    {
+        theConfig = file;
+    }
+
+    /**
+     * Get the config file.
+     *
+     * @return the config file name
+     * @see #setConfig
+     */
+    public String getConfig()
+    {
+        return theConfig;
+    }
+
+    /**
      * Start it.
      *
      * @throws LifecycleException thrown if this TomcatModuleLoader cannot be started
@@ -132,7 +159,53 @@ public class TomcatModuleLoader
         throws
             LifecycleException
     {
-        if( theRootmodule == null ) {
+        Map<ModuleRequirement,Map<String,String>> rawModuleSettings = new HashMap<>();
+
+        if( theConfig != null ) {
+            Properties configProps = new Properties();
+
+            try ( FileInputStream configStream = new FileInputStream( theConfig ) ) {
+                configProps.load(configStream);
+
+            } catch( IOException ex ) {
+                throw new LifecycleException( "Cannot read config file: " + theConfig );
+            }
+
+            if( configProps.containsKey( "diet4j!directory" )) {
+                if( theModuledirectory != null ) {
+                    throw new LifecycleException( "Specified both as argument and in config file: directory" );
+                }
+                theModuledirectory = configProps.getProperty( "diet4j!directory" );
+                // FIXME: no spaces or commas in file names
+            }
+            if( configProps.containsKey( "diet4j!module" )) {
+                if( theModulenames != null ) {
+                    throw new LifecycleException( "Specified both as argument and in config file: module" );
+                }
+                theModulenames = configProps.getProperty( "diet4j!module" );
+                // FIXME: no spaces or commas in file names
+            }
+            for( Object key : configProps.keySet() ) {
+                String realKey = (String) key;
+                int    excl    = realKey.indexOf( '!' );
+                if( excl > 0 ) {
+                    String n1 = realKey.substring( 0, excl );
+                    String n2 = realKey.substring( excl + 1 );
+
+                    if( !"diet4j".equals( n1 )) {
+                        ModuleRequirement req1 = ModuleRequirement.create( n1 );
+                        Map<String,String> forThisModule = rawModuleSettings.get( req1 );
+                        if( forThisModule == null ) {
+                            forThisModule = new HashMap<>();
+                            rawModuleSettings.put( req1, forThisModule );
+                        }
+                        forThisModule.put( n2, configProps.getProperty( realKey ));
+                    }
+                }
+            }
+        }
+
+        if( theModulenames == null ) {
             throw new LifecycleException( "rootmodule parameter not set" );
         }
 
@@ -147,51 +220,81 @@ public class TomcatModuleLoader
                 throw new LifecycleException( "Directory specified in moduledirectory cannot be resolved into a canonical path: " + dir );
             }
         }
+
+        String [] moduleNames = theModulenames.split( "[,\\s]+" );
+        if( moduleNames == null || moduleNames.length == 0 ) {
+            throw new LifecycleException( "No root module given" );
+        }
+
+        ModuleRequirement [] moduleRequirements = new ModuleRequirement[ moduleNames.length ];
+        for( int i=0 ; i<moduleNames.length ; ++i ) {
+            try {
+                moduleRequirements[i] = ModuleRequirement.parse( moduleNames[i] );
+            } catch( ParseException ex ) {
+                throw new LifecycleException( ex.getLocalizedMessage() );
+            }
+        }
+
         File [] dirArray = new File[ dirs.size() ];
         dirs.keySet().toArray( dirArray );
 
-        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( dirArray, TOMCAT_DO_NOT_LOAD_CLASS_PREFIXES );
+        Map<ModuleRequirement,ModuleSettings> moduleSettings = new HashMap<>();
+        for( Map.Entry<ModuleRequirement,Map<String,String>> e : rawModuleSettings.entrySet() ) {
+            if( !e.getValue().isEmpty() ) {
+                moduleSettings.put( e.getKey(), ModuleSettings.create( e.getValue() ));
+            }
+        }
+
+        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( dirArray, moduleSettings, TOMCAT_DO_NOT_LOAD_CLASS_PREFIXES );
 
         // I would have liked to invoke super.startInternal() last but that's the only way I can get at our ClassLoader.
         super.startInternal();
 
         TomcatWebAppClassLoader myClassLoader = (TomcatWebAppClassLoader) super.getClassLoader();
 
-        try {
-            ModuleRequirement rootRequirement = ModuleRequirement.parse( theRootmodule );
+        // find and resolve modules
+        ModuleMeta [] metas = new ModuleMeta[ moduleRequirements.length ];
 
-            ModuleMeta foundRootMeta   = theModuleRegistry.determineSingleResolutionCandidate( rootRequirement );
-            Module     foundRootModule = theModuleRegistry.resolve( foundRootMeta );
+        for( int i=0 ; i<metas.length ; ++i ) {
+            try {
+                metas[i] = theModuleRegistry.determineSingleResolutionCandidate( moduleRequirements[i] );
 
-            myClassLoader.initialize( foundRootModule.determineRuntimeDependencies() );
-
-            foundRootModule.activateRecursively();
-                    // may throw an exception
-
-        } catch( ModuleResolutionException ex ) {
-            // construct a readable error message
-            StringBuilder msg    = new StringBuilder();
-            StringBuilder indent = new StringBuilder();
-
-            msg.append( "diet4j initialization failed. Cannot resolve requirement " );
-            for( Throwable current = ex ; current != null ; current = current.getCause() ) {
-                msg.append( indent );
-
-                if( current instanceof ModuleResolutionException ) {
-                    msg.append( ((ModuleResolutionException)current).getModuleRequirement().toString() );
-                } else {
-                    msg.append( ex.getMessage() );
-                }
-                if( indent.length() == 0 ) {
-                    indent.append( "\ndepending on:  " );
-                } else {
-                    indent.append( "  " );
-                }
+            } catch( Throwable ex ) {
+                throw new LifecycleException( "Cannot find module " + moduleRequirements[i], ex );
             }
+        }
 
-            throw new LifecycleException( msg.toString() );
-        } catch( Throwable ex ) {
-            throw new LifecycleException( ex );
+        for( int i=0 ; i<metas.length ; ++i ) {
+            try {
+                theModules[i] = theModuleRegistry.resolve( metas[i] );
+                theModules[i].activateRecursively();
+
+
+            } catch( ModuleResolutionException ex ) {
+                // construct a readable error message
+                StringBuilder msg    = new StringBuilder();
+                StringBuilder indent = new StringBuilder();
+
+                msg.append( "diet4j initialization failed. Cannot resolve requirement " );
+                for( Throwable current = ex ; current != null ; current = current.getCause() ) {
+                    msg.append( indent );
+
+                    if( current instanceof ModuleResolutionException ) {
+                        msg.append( ((ModuleResolutionException)current).getModuleRequirement().toString() );
+                    } else {
+                        msg.append( ex.getMessage() );
+                    }
+                    if( indent.length() == 0 ) {
+                        indent.append( "\ndepending on:  " );
+                    } else {
+                        indent.append( "  " );
+                    }
+                }
+
+                throw new LifecycleException( msg.toString() );
+            } catch( Throwable ex ) {
+                throw new LifecycleException( ex );
+            }
         }
     }
 
@@ -206,6 +309,24 @@ public class TomcatModuleLoader
             LifecycleException
     {
         super.setState( LifecycleState.STOPPING );
+
+        Throwable thrown = null;
+        Module    failed = null;
+        for( int i=theModules.length-1 ; i>=0 ; --i ) {
+            if( theModules[i] == null ) {
+                continue;
+            }
+            try {
+                theModules[i].deactivateRecursively();
+
+            } catch( Throwable ex ) {
+                failed = theModules[i];
+                thrown = ex;
+            }
+        }
+        if( failed != null ) {
+            throw new LifecycleException( "Dectivation of module " + failed.getModuleMeta() + " failed", thrown );
+        }
     }
 
     /**
@@ -220,14 +341,24 @@ public class TomcatModuleLoader
     }
 
     /**
-     * Name of the root module.
+     * Name of the modules.
      */
-    protected String theRootmodule;
+    protected String theModulenames;
+
+    /**
+     * The actual Modules.
+     */
+    protected Module [] theModules;
 
     /**
      * Directory in which the module JARs can be found.
      */
     protected String theModuledirectory = DEFAULT_MODULEDIRECTORY;
+
+    /**
+     * File that contains settings.
+     */
+    protected String theConfig;
 
     /**
      * Keep a reference to the ModuleRegistries that we are using so they won't be garbage collected.

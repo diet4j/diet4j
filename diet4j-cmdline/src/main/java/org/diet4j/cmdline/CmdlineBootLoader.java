@@ -26,7 +26,9 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,6 +37,7 @@ import org.diet4j.core.Module;
 import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
+import org.diet4j.core.ModuleSettings;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
 import org.diet4j.core.Version;
 
@@ -69,21 +72,21 @@ public abstract class CmdlineBootLoader
             System.exit( ret );
 
         } catch( Throwable ex ) {
-            
+
             StringWriter sw = new StringWriter();
             PrintWriter  pw = new PrintWriter( sw );
 
             pw.append( "Something bad happened that should not have:\n" );
-            ex.printStackTrace( pw );            
+            ex.printStackTrace( pw );
             pw.flush();
-            
+
             fatal( sw.toString() );
         }
     }
-    
+
     /**
      * Parse arguments.
-     * 
+     *
      * @param args arguments provided by the user
      */
     static void parseArguments(
@@ -120,7 +123,7 @@ public abstract class CmdlineBootLoader
         } else {
             moduleNames = null;
         }
- 
+
         if( dashDash >= remaining.length-1 ) {
             theRunArguments = null;
         } else {
@@ -132,6 +135,8 @@ public abstract class CmdlineBootLoader
         theRunMethodName = parameters.get( "method" );
 
         String [] directories = parameters.getMany( "directory" );
+
+        Map<ModuleRequirement,Map<String,String>> rawModuleSettings = new HashMap<>();
 
         String config = parameters.get( "config" );
         if( config != null ) {
@@ -177,7 +182,27 @@ public abstract class CmdlineBootLoader
                 theRunArguments = configProps.getProperty( "diet4j!runarg" ).split( "[,\\s]+" );
                 // FIXME: this currently does not allow quotes to be used to keep white space or such
             }
+
+            for( Object key : configProps.keySet() ) {
+                String realKey = (String) key;
+                int    excl    = realKey.indexOf( '!' );
+                if( excl > 0 ) {
+                    String n1 = realKey.substring( 0, excl );
+                    String n2 = realKey.substring( excl + 1 );
+
+                    if( !"diet4j".equals( n1 )) {
+                        ModuleRequirement req1 = ModuleRequirement.create( n1 );
+                        Map<String,String> forThisModule = rawModuleSettings.get( req1 );
+                        if( forThisModule == null ) {
+                            forThisModule = new HashMap<>();
+                            rawModuleSettings.put( req1, forThisModule );
+                        }
+                        forThisModule.put( n2, configProps.getProperty( realKey ));
+                    }
+                }
+            }
         }
+
         if( moduleNames == null || moduleNames.length == 0 ) {
             fatal( "No root module given" );
             return; // won't happen, but make IDE happy
@@ -206,17 +231,24 @@ public abstract class CmdlineBootLoader
         if( theRunArguments == null ) {
             theRunArguments = new String[0];
         }
+
+        Map<ModuleRequirement,ModuleSettings> moduleSettings = new HashMap<>();
+        for( Map.Entry<ModuleRequirement,Map<String,String>> e : rawModuleSettings.entrySet() ) {
+            if( !e.getValue().isEmpty() ) {
+                moduleSettings.put( e.getKey(), ModuleSettings.create( e.getValue() ));
+            }
+        }
+
+        theRegistry = ScanningDirectoriesModuleRegistry.create( theDirectories, moduleSettings );
     }
 
     /**
      * Execute.
-     * 
+     *
      * @return desired system exit code
      */
     static int activateRunDeactivate()
     {
-        // create ModuleRegistry
-        ModuleRegistry registry = ScanningDirectoriesModuleRegistry.create(theDirectories );
 
         // find and resolve modules
         ModuleMeta [] theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
@@ -226,7 +258,7 @@ public abstract class CmdlineBootLoader
         try {
             for( int i=0 ; i<theModuleMetas.length ; ++i ) {
                 try {
-                    theModuleMetas[i] = registry.determineSingleResolutionCandidate( theModuleRequirements[i] );
+                    theModuleMetas[i] = theRegistry.determineSingleResolutionCandidate( theModuleRequirements[i] );
 
                 } catch( Throwable ex ) {
                     fatal( "Cannot find module " + theModuleRequirements[i], ex );
@@ -235,7 +267,7 @@ public abstract class CmdlineBootLoader
 
             for( int i=0 ; i<theModuleMetas.length ; ++i ) {
                 try {
-                    theModules[i] = registry.resolve( theModuleMetas[i] );
+                    theModules[i] = theRegistry.resolve( theModuleMetas[i] );
                     theModules[i].activateRecursively();
 
                 } catch( Throwable ex ) {
@@ -256,7 +288,7 @@ public abstract class CmdlineBootLoader
                     log.log( Level.SEVERE, "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
                     ret = 1;
 
-                }            
+                }
             }
 
         } finally {
@@ -276,14 +308,14 @@ public abstract class CmdlineBootLoader
         }
         return ret;
     }
-    
+
     /**
      * Print help text and quit.
      */
     public static void helpAndQuit()
     {
         PrintStream w = System.out;
-        
+
         w.println( "Synopsis: (diet4j-core " + Version.VERSION + ", built " + Version.BUILDTIME + ")" );
         w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
         w.println( "    where:" );
@@ -311,7 +343,7 @@ public abstract class CmdlineBootLoader
 
     /**
      * Print fatal error and quit.
-     * 
+     *
      * @param msg the error message
      */
     public static void fatal(
@@ -323,7 +355,7 @@ public abstract class CmdlineBootLoader
 
     /**
      * Print fatal error and quit.
-     * 
+     *
      * @param msg the error message
      * @param cause what happened
      */
@@ -359,6 +391,11 @@ public abstract class CmdlineBootLoader
      * The arguments to the run
      */
     protected static String [] theRunArguments;
+
+    /**
+     * The ModuleRegistry
+     */
+    protected static ModuleRegistry theRegistry;
 
     /**
      * Logger.

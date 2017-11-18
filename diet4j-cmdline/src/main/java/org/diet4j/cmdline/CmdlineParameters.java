@@ -109,10 +109,10 @@ public class CmdlineParameters
             return new String[0];
         }
     }
-    
+
     /**
      * Has this named parameter been given?
-     * 
+     *
      * @param name name of the parameter
      * @return true or false
      */

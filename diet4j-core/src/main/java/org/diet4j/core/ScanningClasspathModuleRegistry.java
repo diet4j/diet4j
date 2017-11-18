@@ -25,6 +25,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.jar.JarFile;
 
 /**
@@ -51,7 +52,9 @@ public class ScanningClasspathModuleRegistry
             throw new IllegalStateException( "Have a singleton already: " + theSingleton );
         }
         HashMap<String,MiniModuleMetaMap> metas = findModuleMetas(ScanningClasspathModuleRegistry.class.getClassLoader() );
-        theSingleton = new ScanningClasspathModuleRegistry( metas );
+        Map<ModuleRequirement,ModuleSettings> moduleSettings = new HashMap<>(); // leave empty
+
+        theSingleton = new ScanningClasspathModuleRegistry( metas, moduleSettings );
 
         return (ScanningClasspathModuleRegistry) theSingleton;
     }
@@ -60,11 +63,13 @@ public class ScanningClasspathModuleRegistry
      * Private constructor; use factory method.
      *
      * @param metas the found ModuleMetas
+     * @param moduleSettings the settings for the modules
      */
     private ScanningClasspathModuleRegistry(
-            HashMap<String,MiniModuleMetaMap> metas )
+            HashMap<String,MiniModuleMetaMap>     metas,
+            Map<ModuleRequirement,ModuleSettings> moduleSettings )
     {
-        super( metas, new String[0] ); // doNotLoadClassPrefixes not used -- not using ModuleClassLoader either
+        super( metas, moduleSettings, new String[0] ); // doNotLoadClassPrefixes not used -- not using ModuleClassLoader either
     }
 
     /**

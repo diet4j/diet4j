@@ -318,15 +318,17 @@ public class ModuleMeta
      * Create a Module from this ModuleMeta. This is not supposed to be invoked
      * by the application programmer.
      *
+     * @param settings the settings for the to-be-created Module
      * @param registry the AbstractModuleRegistry in which the to-be-created Module will look for dependent Modules
      * @param parentClassLoader the ClassLoader of our parent Module
      * @return the created Module
      */
     protected Module createModule(
+            ModuleSettings         settings,
             AbstractModuleRegistry registry,
-            ClassLoader    parentClassLoader )
+            ClassLoader            parentClassLoader )
     {
-        return new Module( this, registry, parentClassLoader );
+        return new Module( this, settings, registry, parentClassLoader );
     }
 
     /**

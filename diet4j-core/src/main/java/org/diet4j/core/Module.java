@@ -34,25 +34,31 @@ public class Module
      * Constructor. This should not be directly invoked by the application programmer.
      *
      * @param meta this Module's ModuleMeta
+     * @param settings the settings for the Module
      * @param registry the registry of Modules in which we try to find dependent Modules
      * @param parentClassLoader the class loader of our parent Module
      */
     public Module(
             ModuleMeta             meta,
+            ModuleSettings         settings,
             AbstractModuleRegistry registry,
             ClassLoader            parentClassLoader )
     {
         if( meta == null ) {
             throw new NullPointerException( "Null ModuleMeta" );
         }
+        if( settings == null ) {
+            throw new NullPointerException( "Null ModuleSettings" );
+        }
         if( registry == null ) {
-            throw new NullPointerException( "Null Module Registry" );
+            throw new NullPointerException( "Null ModuleRegistry" );
         }
         if( parentClassLoader == null ) {
             throw new NullPointerException( "Null parent ClassLoader" );
         }
 
         theModuleMeta        = meta;
+        theSettings          = settings;
         theRegistry          = registry;
         theParentClassLoader = parentClassLoader;
     }
@@ -105,6 +111,17 @@ public class Module
     public final ModuleRegistry getModuleRegistry()
     {
         return theRegistry;
+    }
+
+    /**
+     * Obtain the settings for this Module. This will always return something
+     * non-null, regardless of whether there are any settings
+     *
+     * @return the ModuleSettings
+     */
+    public final ModuleSettings getModuleSettings()
+    {
+        return theSettings;
     }
 
     /**
@@ -350,7 +367,7 @@ public class Module
 
             Method runMethod = runClass.getMethod(
                     runMethodName,
-                    new Class[] {
+                    new Class<?>[] {
                             String[].class } );
 
             log.log( Level.FINER, "run: {0} ({1} {2})", new Object[] { this, runClass, runMethod } );
@@ -442,6 +459,11 @@ public class Module
      * The ModuleMeta for this Module.
      */
     protected ModuleMeta theModuleMeta;
+
+    /**
+     * The ModuleSettings for this Module.
+     */
+    protected ModuleSettings theSettings;
 
     /**
      * This Module's ClassLoader. Allocated as needed.

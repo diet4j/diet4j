@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,24 +45,28 @@ public class ScanningDirectoriesModuleRegistry
      * Factory method. Delegate the default set of classes to the system class loader.
      *
      * @param dirs the directories to scan
+     * @param moduleSettings the settings for the modules
      * @return the created ScanningDirectoriesModuleRegistry
      */
     public static ScanningDirectoriesModuleRegistry create(
-            File [] dirs )
+            File []                               dirs,
+            Map<ModuleRequirement,ModuleSettings> moduleSettings )
     {
-        return create( dirs, AbstractModuleRegistry.DEFAULT_DO_NOT_LOAD_CLASS_PREFIXES );
+        return create( dirs, moduleSettings, AbstractModuleRegistry.DEFAULT_DO_NOT_LOAD_CLASS_PREFIXES );
     }
 
     /**
      * Factory method.
      *
      * @param dirs the directories to scan
+     * @param moduleSettings the settings for the modules
      * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
      * @return the created ScanningDirectoriesModuleRegistry
      */
     public static ScanningDirectoriesModuleRegistry create(
-            File []   dirs,
-            String [] doNotLoadClassPrefixes )
+            File []                               dirs,
+            Map<ModuleRequirement,ModuleSettings> moduleSettings,
+            String []                             doNotLoadClassPrefixes )
     {
         if( dirs == null || dirs.length == 0 ) {
             dirs = DEFAULT_MODULE_DIRECTORIES;
@@ -103,7 +108,11 @@ public class ScanningDirectoriesModuleRegistry
         HashMap<String,MiniModuleMetaMap> metas = new HashMap<>();
         addParsedModuleMetasFromJars( jars, metas );
 
-        ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry( dirs, metas, doNotLoadClassPrefixes );
+        ScanningDirectoriesModuleRegistry ret = new ScanningDirectoriesModuleRegistry(
+                dirs,
+                metas,
+                moduleSettings,
+                doNotLoadClassPrefixes );
         return ret;
     }
 
@@ -112,14 +121,16 @@ public class ScanningDirectoriesModuleRegistry
      *
      * @param dirs the directories that were scanned
      * @param metas the ModuleMetas found during boot, keyed by their name, and then ordered by version
+     * @param moduleSettings the settings for the modules
      * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
      */
     protected ScanningDirectoriesModuleRegistry(
-            File []                           dirs,
-            HashMap<String,MiniModuleMetaMap> metas,
-            String []                         doNotLoadClassPrefixes )
+            File []                               dirs,
+            HashMap<String,MiniModuleMetaMap>     metas,
+            Map<ModuleRequirement,ModuleSettings> moduleSettings,
+            String []                             doNotLoadClassPrefixes )
     {
-        super( metas, doNotLoadClassPrefixes );
+        super( metas, moduleSettings, doNotLoadClassPrefixes );
 
         theDirectories = dirs;
     }

@@ -24,7 +24,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
@@ -39,6 +41,7 @@ import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
 import org.diet4j.core.ModuleResolutionException;
 import org.diet4j.core.ModuleRunException;
+import org.diet4j.core.ModuleSettings;
 import org.diet4j.core.NoRunMethodException;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
 
@@ -74,7 +77,7 @@ public class Diet4jDaemon
         }
         String [] moduleNames = new String[ dashDash ];
         System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
- 
+
         if( dashDash >= remaining.length-1 ) {
             theRunArguments = new String[0];
         } else {
@@ -86,6 +89,8 @@ public class Diet4jDaemon
         theRunMethodName = parameters.get( "method" );
 
         String [] directories = parameters.getMany( "directory" );
+
+        Map<ModuleRequirement,Map<String,String>> rawModuleSettings = new HashMap<>();
 
         String config = parameters.get( "config" );
         if( config != null ) {
@@ -131,12 +136,31 @@ public class Diet4jDaemon
                 theRunArguments = configProps.getProperty( "diet4j!runarg" ).split( "[,\\s]+" );
                 // FIXME: this currently does not allow quotes to be used to keep white space or such
             }
+            for( Object key : configProps.keySet() ) {
+                String realKey = (String) key;
+                int    excl    = realKey.indexOf( '!' );
+                if( excl > 0 ) {
+                    String n1 = realKey.substring( 0, excl );
+                    String n2 = realKey.substring( excl + 1 );
+
+                    if( !"diet4j".equals( n1 )) {
+                        ModuleRequirement req1 = ModuleRequirement.create( n1 );
+                        Map<String,String> forThisModule = rawModuleSettings.get( req1 );
+                        if( forThisModule == null ) {
+                            forThisModule = new HashMap<>();
+                            rawModuleSettings.put( req1, forThisModule );
+                        }
+                        forThisModule.put( n2, configProps.getProperty( realKey ));
+                    }
+                }
+            }
         }
+
         if( moduleNames == null || moduleNames.length == 0 ) {
             fatal( "No root module given" );
             return; // won't happen, but make IDE happy
         }
-        
+
         theModuleRequirements = new ModuleRequirement[ moduleNames.length ];
         for( int i=0 ; i<moduleNames.length ; ++i ) {
             try {
@@ -165,8 +189,15 @@ public class Diet4jDaemon
             theRunArguments = new String[0];
         }
 
+        Map<ModuleRequirement,ModuleSettings> moduleSettings = new HashMap<>();
+        for( Map.Entry<ModuleRequirement,Map<String,String>> e : rawModuleSettings.entrySet() ) {
+            if( !e.getValue().isEmpty() ) {
+                moduleSettings.put( e.getKey(), ModuleSettings.create( e.getValue() ));
+            }
+        }
+
         // create ModuleRegistry
-        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( theDirectories );
+        theModuleRegistry = ScanningDirectoriesModuleRegistry.create( theDirectories, moduleSettings );
 
         // find and resolve modules
         theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
@@ -210,7 +241,7 @@ public class Diet4jDaemon
 
         } catch( Throwable ex ) {
             fatal( "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
-        }                    
+        }
     }
 
     @Override
@@ -246,7 +277,7 @@ public class Diet4jDaemon
 
     /**
      * Something fatal has happened.
-     * 
+     *
      * @param msg the message
      * @throws DaemonInitException tell the daemon about it, always thrown
      */
@@ -257,10 +288,10 @@ public class Diet4jDaemon
     {
         fatal( msg, null );
     }
-    
+
     /**
      * Something fatal has happened that had a cause.
-     * 
+     *
      * @param msg the message
      * @param cause the cause
      * @throws DaemonInitException tell the daemon about it, always thrown

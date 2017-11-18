@@ -21,6 +21,7 @@ package org.diet4j.core;
 
 import java.io.Serializable;
 import java.text.ParseException;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -92,10 +93,10 @@ public class ModuleRequirement
     {
         return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, isOptional );
     }
-    
+
     /**
       * Factory method using a String representation corresponding to toString().
-      * 
+      *
       * @param s the String to be parsed
       * @return the created ModuleRequirement
       * @throws ParseException thrown if the provided s did have an invalid syntax
@@ -184,7 +185,7 @@ public class ModuleRequirement
 
     /**
      * Determine whether this ModuleRequirement is optional.
-     * 
+     *
      * @return true, if the ModuleRequirement is optional
      */
     public final boolean isOptional()
@@ -212,7 +213,7 @@ public class ModuleRequirement
 
     /**
      * Given an ordered set of ModuleMetas, find the matching versions.
-     * 
+     *
      * @param candidates the ModuleMeta candidates
      * @return the matched ModuleMetas
      */
@@ -234,11 +235,11 @@ public class ModuleRequirement
         }
         return ret;
     }
-    
+
     /**
      * Determine whether the provided version String matches the version requirement
      * in this ModuleRequirement.
-     * 
+     *
      * @param version the version string
      * @return true or false
      */
@@ -249,9 +250,9 @@ public class ModuleRequirement
         if( theMinRequiredModuleVersionIsInclusive && version != null && version.equals( theMaxRequiredModuleVersion )) {
             return true;
         }
-        
+
         ensureVersionsParsed();
-        
+
         Object [][] parsedVersion = parseVersion( version );
 
         if( theParsedMinRequiredModuleVersion != null ) {
@@ -263,7 +264,7 @@ public class ModuleRequirement
                 return false;
             }
         }
- 
+
         if( theParsedMaxRequiredModuleVersion != null ) {
             int comp = compareParsedVersions( theParsedMaxRequiredModuleVersion, parsedVersion );
             if( comp < 0 ) {
@@ -273,13 +274,13 @@ public class ModuleRequirement
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * Compare two parsed versions.
-     * 
+     *
      * @param a the first parsed version
      * @param b the second parsed version
      * @return -1, 0 or 1 like strcmp()
@@ -302,7 +303,7 @@ public class ModuleRequirement
             } else {
                 if( b[i] != null ) {
                     return -1;
-                    
+
                 } else {
                     // do nothing; should not really occur
                 }
@@ -317,7 +318,7 @@ public class ModuleRequirement
 
     /**
      * Helper method to compare version parts.
-     * 
+     *
      * @param a first version part
      * @param b second version part
      * @return -1, 0 or 1 like strcmp()
@@ -361,13 +362,13 @@ public class ModuleRequirement
             } else {
                 if( b[i] != null ) {
                     return -1;
-                    
+
                 } else {
                     return 0;
                 }
             }
         }
-        
+
         if( a.length > max ) {
             if( a[max] != null ) {
                 return 1; // so b[max] must not exist or be null
@@ -385,7 +386,7 @@ public class ModuleRequirement
 
     /**
      * Parse a version string, and set the properties on this instance accordingly.
-     * 
+     *
      * @param s the version string
      */
     protected void parseAndSetMinMaxVersions(
@@ -435,12 +436,12 @@ public class ModuleRequirement
             }
         } else {
             theParsedMaxRequiredModuleVersion = null;
-        }        
+        }
     }
 
     /**
      * Take a version string and parse it into its components.
-     * 
+     *
      * @param v the version string
      * @return the components, left to right
      */
@@ -449,10 +450,10 @@ public class ModuleRequirement
     {
         String []   major = v.split( "." );
         Object [][] ret   = new Object[ major.length ][];
-        
+
         for( int i=0 ; i<major.length ; ++i ) {
             ret[i] = new Object[ major[i].length() ]; // over-allocated
-            
+
             int count = 0;
 
             StringBuilder currentString = null; // once non-null, we know we are parsing a string
@@ -464,7 +465,7 @@ public class ModuleRequirement
                     if( currentString != null ) {
                         ret[i][count++] = currentString.toString();
                         currentString = null;
-                        
+
                         currentLong = Character.digit( c, 10 );
                     } else {
                         if( currentLong == -1 ) {
@@ -535,6 +536,53 @@ public class ModuleRequirement
         return buf.toString();
     }
 
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(
+            Object obj )
+    {
+        if( this == obj ) {
+            return true;
+        }
+        if( obj == null ) {
+            return false;
+        }
+        if( !( obj instanceof ModuleRequirement )) {
+            return false;
+        }
+        final ModuleRequirement other = (ModuleRequirement) obj;
+        if( !Objects.equals( this.theRequiredModuleGroupId, other.theRequiredModuleGroupId )) {
+            return false;
+        }
+        if( !Objects.equals( this.theRequiredModuleArtifactId, other.theRequiredModuleArtifactId )) {
+            return false;
+        }
+        if( !Objects.equals( this.theMinRequiredModuleVersion, other.theMinRequiredModuleVersion )) {
+            return false;
+        }
+        if( !Objects.equals( this.theMaxRequiredModuleVersion, other.theMaxRequiredModuleVersion )) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode()
+    {
+        int hash = 5;
+        hash = 31 * hash + Objects.hashCode(this.theRequiredModuleGroupId);
+        hash = 31 * hash + Objects.hashCode(this.theRequiredModuleArtifactId);
+        hash = 31 * hash + Objects.hashCode(this.theMinRequiredModuleVersion);
+        hash = 31 * hash + Objects.hashCode(this.theMaxRequiredModuleVersion);
+        return hash;
+    }
+
     /**
      * The groupId of the required Module.
      */
@@ -586,13 +634,13 @@ public class ModuleRequirement
      * Is this dependency optional.
      */
     protected boolean theIsOptional;
-    
+
     /**
      * The regex defining Maven version expressions.
      */
     public static Pattern MAVEN_VERSION_REGEX = Pattern.compile(
             "([\\[\\(])([^,\\[\\]\\(\\)]*),([^,\\[\\]\\(\\)]*)(\\]\\))" );
-    
+
     /**
      * The regex that groupId and artifactId strings must match.
      */

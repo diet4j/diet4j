@@ -40,7 +40,7 @@ public class TomcatWebAppClassLoader
 {
     /**
      * Constructor.
-     * 
+     *
      * @param parent the parent ClassLoader to use
      */
     public TomcatWebAppClassLoader(

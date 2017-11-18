@@ -66,15 +66,18 @@ public abstract class AbstractScanningModuleRegistry
      *
      * @param metas the ModuleMetas found, keyed by their artifactId, then by their groupId,
      *               and then ordered by version
+     * @param moduleSettings the settings for the modules
      * @param doNotLoadClassPrefixes prefixes of classes always to be loaded through the system class loader, not this one
      */
     protected AbstractScanningModuleRegistry(
-            Map<String,MiniModuleMetaMap> metas,
-            String []                     doNotLoadClassPrefixes )
+            Map<String,MiniModuleMetaMap>         metas,
+            Map<ModuleRequirement,ModuleSettings> moduleSettings,
+            String []                             doNotLoadClassPrefixes )
     {
         super( doNotLoadClassPrefixes );
 
-        theMetas = metas;
+        theMetas          = metas;
+        theModuleSettings = moduleSettings;
     }
 
     /**
@@ -600,7 +603,7 @@ public abstract class AbstractScanningModuleRegistry
                 String  dependencyArtifactId = (String)  runTimeRequirement[1];
                 String  dependencyVersion    = (String)  runTimeRequirement[2];
                 boolean isOptional           = (Boolean) runTimeRequirement[3];
-                
+
                 if( dependencyGroupId != null ) {
                     dependencyGroupId = replaceProperties( pomProperties, dependencyGroupId );
                 }
@@ -610,7 +613,7 @@ public abstract class AbstractScanningModuleRegistry
                 if( dependencyVersion != null ) {
                     dependencyVersion = replaceProperties( pomProperties, dependencyVersion );
                 }
-                
+
                 runTime[i] = ModuleRequirement.create(
                         dependencyGroupId,
                         dependencyArtifactId,
@@ -690,12 +693,27 @@ public abstract class AbstractScanningModuleRegistry
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected ModuleSettings getModuleSettingsFor(
+            ModuleMeta meta )
+    {
+        for( Map.Entry<ModuleRequirement,ModuleSettings> e : theModuleSettings.entrySet() ) {
+            if( e.getKey().matches( meta )) {
+                return e.getValue();
+            }
+        }
+        return EMPTY;
+    }
+
+    /**
      * Helper method to compare two versions the way RPM does it.
      * Null comes first, then ordered by dot-separate
      *
      * @param a: version 1 to compare
      * @param b: version 2 to compare
-     * @return: -1, 0, or 1 like strcmp
+     * @return -1, 0, or 1 like strcmp
      */
     public static int rpmvercmp(
             String a,
@@ -851,6 +869,16 @@ public abstract class AbstractScanningModuleRegistry
      * groupId. Multiple  versions of the ModuleMeta are ordered with the newest first.
      */
     protected final Map<String,MiniModuleMetaMap> theMetas;
+
+    /**
+     * The ModuleSettings for those Modules that have some.
+     */
+    protected Map<ModuleRequirement,ModuleSettings> theModuleSettings;
+
+    /**
+     * Empty ModuleSettings. Shared objects for all Modules that don't have any ModuleSettings.
+     */
+    protected static final ModuleSettings EMPTY = ModuleSettings.create( new HashMap<>() );
 
     /**
      * Logger.

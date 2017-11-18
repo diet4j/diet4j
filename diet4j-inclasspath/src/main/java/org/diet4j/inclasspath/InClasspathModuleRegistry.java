@@ -94,7 +94,7 @@ public class InClasspathModuleRegistry
             HashMap<String,MiniModuleMetaMap> metas,
             ClassLoader                       loader )
     {
-        super( metas, new String[0] );
+        super( metas, new HashMap<>(), new String[0] );
 
         theClassLoader = loader;
     }
@@ -137,11 +137,11 @@ public class InClasspathModuleRegistry
                 case "jar":
                     String jarFile = metaInfoUrl.getFile();
 
-                    int colon = jarFile.indexOf( ":" );
+                    int colon = jarFile.indexOf( ':' );
                     if( colon > 0 ) {
                         jarFile = jarFile.substring( colon+1 );
                     }
-                    int excl = jarFile.indexOf( "!" );
+                    int excl = jarFile.indexOf( '!' );
                     if( excl > 0 ) {
                         jarFile = jarFile.substring( 0, excl );
                     }
