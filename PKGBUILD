@@ -6,7 +6,8 @@ arch=('any')
 url="http://jdiet.org/"
 license=('Apache')
 makedepends=('maven' 'jdk8-openjdk' )
-depends=('java-runtime=9' 'java-jsvc')
+depends=('java-runtime=8')
+optdepends=('java-jsvc')
 
 prepare() {
     # Set pom.xml versions correctly; depends on XML-comment-based markup in pom.xml files
@@ -39,6 +40,9 @@ package() {
     # JSVC
     mkdir -p ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current
     ln -s ../${pkgver}/diet4j-jsvc-${pkgver}.jar ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current/diet4j-jsvc-current.jar
+
+    # Settings
+    mkdir -p ${pkgdir}/etc/diet4j
 
     # Tomcat
     mkdir -p ${pkgdir}/usr/share/java/tomcat8

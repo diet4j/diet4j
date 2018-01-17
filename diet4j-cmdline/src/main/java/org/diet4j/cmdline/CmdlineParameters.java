@@ -55,7 +55,7 @@ public class CmdlineParameters
 
         int i=0;
         while( i<args.length ) {
-            if( args[i].startsWith( "-" )) {
+            if( args[i].startsWith( "-" ) && ! "--".equals( args[i])) {
                 args[i] = args[i].substring( 1 );
                 if( args[i].startsWith( "-" )) {
                     args[i] = args[i].substring( 1 );

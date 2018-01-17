@@ -104,14 +104,14 @@ public class Diet4jDaemon
             }
 
             if( configProps.containsKey( "diet4j!directory" )) {
-                if( directories != null ) {
+                if( directories != null && directories.length > 0 ) {
                     fatal( "Specified both as argument and in config file: directory" );
                 }
                 directories = configProps.getProperty( "diet4j!directory" ).split( "[,\\s]+" );
                 // FIXME: no spaces or commas in file names
             }
             if( configProps.containsKey( "diet4j!module" )) {
-                if( moduleNames != null ) {
+                if( moduleNames != null && moduleNames.length > 0 ) {
                     fatal( "Specified both as argument and in config file: module" );
                 }
                 moduleNames = configProps.getProperty( "diet4j!module" ).split( "[,\\s]+" );
@@ -130,7 +130,7 @@ public class Diet4jDaemon
                 theRunMethodName = configProps.getProperty( "diet4j!runmethod" );
             }
             if( configProps.containsKey( "diet4j!runarg" )) {
-                if( theRunArguments != null ) {
+                if( theRunArguments != null && theRunArguments.length > 0 ) {
                     fatal( "Specified both as argument and in config file: arg" );
                 }
                 theRunArguments = configProps.getProperty( "diet4j!runarg" ).split( "[,\\s]+" );
@@ -201,6 +201,7 @@ public class Diet4jDaemon
 
         // find and resolve modules
         theModuleMetas = new ModuleMeta[ theModuleRequirements.length ];
+        theModules     = new Module[     theModuleRequirements.length ]; // while we are at it
 
         for( int i=0 ; i<theModuleMetas.length ; ++i ) {
             try {
