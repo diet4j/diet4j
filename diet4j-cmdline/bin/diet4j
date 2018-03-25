@@ -18,9 +18,23 @@
 # under the License.
 #
 
-REPO=${DIET4J_REPO:-/usr/lib/java}
-VERSION=${DIET4J_VERSION:-0.16}
-DIET4JJAR="${REPO}/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar"
-MODULEDIR="${REPO}"
+# Allowed settings in /etc/diet4j.conf:
+# DIET4J_VERSION=<version>
+# DIET4J_REPO=('<path>' '<path>' ...)
+# DIET4J_JAR=<path>
+# JAVA_OPTS=<options>
 
-java ${JAVA_OPTS} -jar ${DIET4JJAR} --directory ${MODULEDIR} $@
+if [[ -r /etc/diet4j/diet4j.conf ]]; then
+  . /etc/diet4j/diet4j.conf
+fi
+
+VERSION=${DIET4J_VERSION:-0.16}
+if [[ -v DIET4J_REPO ]]; then
+    REPO=${DIET4J_REPO[@]}
+else
+    REPO=('/usr/lib/java')
+fi
+
+JAR=${DIET4J_JAR:-/usr/lib/java/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar}
+
+echo java ${JAVA_OPTS} -jar ${JAR} $(for d in ${REPO[@]}; do echo --directory "${d}"; done) $@
