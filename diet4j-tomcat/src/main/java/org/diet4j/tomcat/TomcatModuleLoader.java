@@ -254,6 +254,7 @@ public class TomcatModuleLoader
 
         // find and resolve modules
         ModuleMeta [] metas = new ModuleMeta[ moduleRequirements.length ];
+        theModules          = new Module[ moduleRequirements.length ];
 
         for( int i=0 ; i<metas.length ; ++i ) {
             try {
@@ -268,7 +269,6 @@ public class TomcatModuleLoader
             try {
                 theModules[i] = theModuleRegistry.resolve( metas[i] );
                 theModules[i].activateRecursively();
-
 
             } catch( ModuleResolutionException ex ) {
                 // construct a readable error message
@@ -295,6 +295,11 @@ public class TomcatModuleLoader
             } catch( Throwable ex ) {
                 throw new LifecycleException( ex );
             }
+        }
+        try {
+            myClassLoader.initialize( theModules );
+        } catch( Throwable ex ) {
+            throw new LifecycleException( "Failed to initialize TomcatWebAppClassLoader", ex );
         }
     }
 

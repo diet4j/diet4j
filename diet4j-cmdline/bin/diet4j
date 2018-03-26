@@ -37,4 +37,4 @@ fi
 
 JAR=${DIET4J_JAR:-/usr/lib/java/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar}
 
-echo java ${JAVA_OPTS} -jar ${JAR} $(for d in ${REPO[@]}; do echo --directory "${d}"; done) $@
+java ${JAVA_OPTS} -jar ${JAR} $(for d in ${REPO[@]}; do echo --directory "${d}"; done) $@

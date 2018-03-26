@@ -1,6 +1,6 @@
 pkgname=$(basename $(pwd))
 pkgver=0.16
-pkgrel=2
+pkgrel=3
 pkgdesc='diet4j Java module management'
 arch=('any')
 url="http://jdiet.org/"
