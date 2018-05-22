@@ -21,9 +21,13 @@ Environment='JSVC_OPTS=-debug -nodetach -Djava.io.tmpdir=/var/tmp/diet4j-jsvc-%i
 # For debugging, add those right after $JSVC_OPTS below
 Environment='DIET4J_VERSION=0.16'
 Environment='DIET4J_ARGS=--config /etc/diet4j/diet4j-jsvc-%i.properties'
+EnvironmentFile=-/etc/diet4j/diet4j-jsvc-%i.env
+# (optional environment file that overrides values defined here)
 
 # Those ${foo} vs. $foo look disorganized, but they are not: distinguish between one argument that may
 # contain spaces, and one variable that should expand to several arguments
+
+ExecStartPre=/usr/bin/perl -MUBOS::Utils -e 'UBOS::Utils::mkdirDashP( "/var/tmp/diet4j-jsvc-%i" );'
 
 ExecStart=/usr/bin/jsvc \
         $JSVC_OPTS \
