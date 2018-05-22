@@ -43,7 +43,13 @@ public class ModuleRequirement
     public static ModuleRequirement create(
             String requiredModuleArtifactId )
     {
-        return new ModuleRequirement( null, requiredModuleArtifactId, null, false );
+        return new ModuleRequirement(
+                null,
+                requiredModuleArtifactId,
+                ModuleMeta.DEFAULT_PACKAGING,
+                null,
+                null,
+                false );
     }
 
     /**
@@ -57,7 +63,13 @@ public class ModuleRequirement
             String requiredModuleGroupId,
             String requiredModuleArtifactId )
     {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, null, false );
+        return new ModuleRequirement(
+                requiredModuleGroupId,
+                requiredModuleArtifactId,
+                ModuleMeta.DEFAULT_PACKAGING,
+                null,
+                null,
+                false );
     }
 
     /**
@@ -73,7 +85,13 @@ public class ModuleRequirement
             String requiredModuleArtifactId,
             String requiredModuleVersion )
     {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, false );
+        return new ModuleRequirement(
+                requiredModuleGroupId,
+                requiredModuleArtifactId,
+                ModuleMeta.DEFAULT_PACKAGING,
+                null,
+                requiredModuleVersion,
+                false );
     }
 
     /**
@@ -91,7 +109,67 @@ public class ModuleRequirement
             String  requiredModuleVersion,
             boolean isOptional )
     {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, isOptional );
+        return new ModuleRequirement(
+                requiredModuleGroupId,
+                requiredModuleArtifactId,
+                ModuleMeta.DEFAULT_PACKAGING,
+                null,
+                requiredModuleVersion,
+                isOptional );
+    }
+
+    /**
+      * Factory method.
+      *
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
+      * @param requiredModulePackaging the packaging of the required Module
+      * @param requiredModuleVersion the version of the required Module, null if any
+      * @param isOptional if true, this ModuleRequirement is optional
+      * @return the created ModuleRequirement
+      */
+    public static ModuleRequirement create(
+            String  requiredModuleGroupId,
+            String  requiredModuleArtifactId,
+            String  requiredModuleVersion,
+            String  requiredModulePackaging,
+            boolean isOptional )
+    {
+        return new ModuleRequirement(
+                requiredModuleGroupId,
+                requiredModuleArtifactId,
+                requiredModulePackaging,
+                null,
+                requiredModuleVersion,
+                isOptional );
+    }
+
+    /**
+      * Factory method.
+      *
+      * @param requiredModuleGroupId the groupId of the required Module
+      * @param requiredModuleArtifactId the artifactId of the required Module
+      * @param requiredModulePackaging the packaging of the required Module
+      * @param requiredModuleClassifier the classifier of the required Module
+      * @param requiredModuleVersion the version of the required Module, null if any
+      * @param isOptional if true, this ModuleRequirement is optional
+      * @return the created ModuleRequirement
+      */
+    public static ModuleRequirement create(
+            String  requiredModuleGroupId,
+            String  requiredModuleArtifactId,
+            String  requiredModulePackaging,
+            String  requiredModuleClassifier,
+            String  requiredModuleVersion,
+            boolean isOptional )
+    {
+        return new ModuleRequirement(
+                requiredModuleGroupId,
+                requiredModuleArtifactId,
+                requiredModulePackaging,
+                requiredModuleClassifier,
+                requiredModuleVersion,
+                isOptional );
     }
 
     /**
@@ -109,11 +187,45 @@ public class ModuleRequirement
         String [] parts = s.split( ":" );
         switch( parts.length ) {
             case 1:
-                return new ModuleRequirement( null, parts[0], null, false );
+                return new ModuleRequirement(
+                        null,
+                        parts[0],
+                        ModuleMeta.DEFAULT_PACKAGING,
+                        null,
+                        null,
+                        false );
             case 2:
-                return new ModuleRequirement( parts[0].isEmpty() ? null : parts[0], parts[1], null, false );
+                return new ModuleRequirement(
+                        parts[0].isEmpty() ? null : parts[0],
+                        parts[1],
+                        ModuleMeta.DEFAULT_PACKAGING,
+                        null,
+                        null,
+                        false );
             case 3:
-                return new ModuleRequirement( parts[0].isEmpty() ? null : parts[0], parts[1], parts[2].isEmpty() ? null : parts[2], false );
+                return new ModuleRequirement(
+                        parts[0].isEmpty() ? null : parts[0],
+                        parts[1],
+                        ModuleMeta.DEFAULT_PACKAGING,
+                        null,
+                        parts[2].isEmpty() ? null : parts[2],
+                        false );
+            case 4:
+                return new ModuleRequirement(
+                        parts[0].isEmpty() ? null : parts[0],
+                        parts[1],
+                        parts[2].isEmpty() ? null : parts[2],
+                        null,
+                        parts[3].isEmpty() ? null : parts[3],
+                        false );
+            case 5:
+                return new ModuleRequirement(
+                        parts[0].isEmpty() ? null : parts[0],
+                        parts[1],
+                        parts[2].isEmpty() ? null : parts[2],
+                        parts[3].isEmpty() ? null : parts[3],
+                        parts[4].isEmpty() ? null : parts[4],
+                        false );
             default:
                 throw new ParseException( "Not a valid Module identifier: " + s, 0 );
         }
@@ -124,12 +236,16 @@ public class ModuleRequirement
       *
       * @param requiredModuleGroupId the groupId of the required Module
       * @param requiredModuleArtifactId the artifactId of the required Module
+      * @param requiredModulePackaging the packaging of the required Module
+      * @param requiredModuleClassifier the classifier of the required Module
       * @param requiredModuleVersion the version of the required Module, null if any
       * @param isOptional if true, this ModuleRequirement is optional
       */
     protected ModuleRequirement(
             String  requiredModuleGroupId,
             String  requiredModuleArtifactId,
+            String  requiredModulePackaging,
+            String  requiredModuleClassifier,
             String  requiredModuleVersion,
             boolean isOptional )
     {
@@ -147,6 +263,8 @@ public class ModuleRequirement
         }
         theRequiredModuleGroupId    = requiredModuleGroupId;
         theRequiredModuleArtifactId = requiredModuleArtifactId;
+        theRequiredModulePackaging  = requiredModulePackaging;
+        theRequiredModuleClassifier = requiredModuleClassifier;
         theIsOptional               = isOptional;
 
         parseAndSetMinMaxVersions( requiredModuleVersion );
@@ -170,6 +288,26 @@ public class ModuleRequirement
     public final String getRequiredModuleArtifactId()
     {
         return theRequiredModuleArtifactId;
+    }
+
+    /**
+     * Obtain the packaging of the Module that we require.
+     * 
+     * @return the packaging of the Module that we require
+     */
+    public final String getRequiredModulePackaging()
+    {
+        return theRequiredModulePackaging;
+    }
+    
+    /**
+     * Obtain the classifier of the Module that we require.
+     * 
+     * @return the classifier of the Module that we require
+     */
+    public final String getRequiredModuleClassifier()
+    {
+        return theRequiredModuleClassifier;
     }
 
     /**
@@ -205,7 +343,13 @@ public class ModuleRequirement
         if( theRequiredModuleGroupId != null && !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) ) {
             return false;
         }
-        if( !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) ) {
+        if( !Objects.equals( theRequiredModuleArtifactId, candidate.getModuleArtifactId()) ) {
+            return false;
+        }
+        if( !Objects.equals(theRequiredModulePackaging, candidate.getModulePackaging())) {
+            return false;
+        }
+        if( !Objects.equals(theRequiredModuleClassifier, candidate.getModuleClassifier() )) {
             return false;
         }
         return matchesVersionRequirement( candidate.getModuleVersion() );
@@ -509,6 +653,23 @@ public class ModuleRequirement
         buf.append( ":" );
         buf.append( theRequiredModuleArtifactId );
         buf.append( ":" );
+
+        // per https://maven.apache.org/pom.html
+        if( !ModuleMeta.DEFAULT_PACKAGING.equals(theRequiredModulePackaging )) {
+            buf.append(theRequiredModulePackaging );
+            buf.append( ":" );
+
+            if( theRequiredModuleClassifier != null ) {
+                buf.append(theRequiredModuleClassifier );
+                buf.append( ":" );
+            }
+        } else if( theRequiredModuleClassifier != null ) {
+            buf.append( ModuleMeta.DEFAULT_PACKAGING );
+            buf.append( ":" );
+            buf.append(theRequiredModuleClassifier );
+            buf.append( ":" );
+        }
+
         if( theMinRequiredModuleVersion != null && theMinRequiredModuleVersionIsInclusive && theMaxRequiredModuleVersion == null ) {
             // short representation
             buf.append( theMinRequiredModuleVersion );
@@ -566,6 +727,12 @@ public class ModuleRequirement
         if( !Objects.equals( this.theMaxRequiredModuleVersion, other.theMaxRequiredModuleVersion )) {
             return false;
         }
+        if( !Objects.equals(this.theRequiredModulePackaging, other.theRequiredModulePackaging )) {
+            return false;
+        }
+        if( !Objects.equals(this.theRequiredModuleClassifier, other.theRequiredModuleClassifier )) {
+            return false;
+        }
         return true;
     }
 
@@ -580,6 +747,8 @@ public class ModuleRequirement
         hash = 31 * hash + Objects.hashCode(this.theRequiredModuleArtifactId);
         hash = 31 * hash + Objects.hashCode(this.theMinRequiredModuleVersion);
         hash = 31 * hash + Objects.hashCode(this.theMaxRequiredModuleVersion);
+        hash = 31 * hash + Objects.hashCode(this.theRequiredModulePackaging);
+        hash = 31 * hash + Objects.hashCode(this.theRequiredModuleClassifier);
         return hash;
     }
 
@@ -636,9 +805,19 @@ public class ModuleRequirement
     protected boolean theIsOptional;
 
     /**
+     * The packaging, if it is given.
+     */
+    protected String theRequiredModulePackaging;
+
+    /**
+     * The classifier, if it is given.
+     */
+    protected String theRequiredModuleClassifier;
+
+    /**
      * The regex defining Maven version expressions.
      */
-    public static Pattern MAVEN_VERSION_REGEX = Pattern.compile(
+    public static final Pattern MAVEN_VERSION_REGEX = Pattern.compile(
             "([\\[\\(])([^,\\[\\]\\(\\)]*),([^,\\[\\]\\(\\)]*)(\\]\\))" );
 
     /**

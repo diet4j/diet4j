@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -96,11 +97,32 @@ public class Diet4jDaemon
         if( config != null ) {
             Properties configProps = new Properties();
 
-            try ( FileInputStream configStream = new FileInputStream( config ) ) {
-                configProps.load(configStream);
+            File configFile = new File( config );
+            if( !configFile.exists() ) {
+                fatal( "Config file does not exist: " + config );
 
-            } catch( IOException ex ) {
-                fatal( "Cannot read config file: " + config );
+            } else if( configFile.isFile() ) {
+                try ( FileInputStream configStream = new FileInputStream( configFile ) ) {
+                    configProps.load(configStream);
+
+                } catch( IOException ex ) {
+                    fatal( "Cannot read config file: " + config );
+                }
+
+            } else if( configFile.isDirectory() ) {
+                File [] configFiles = configFile.listFiles( (File f) -> f.isFile() && f.getName().endsWith( ".properties" ));
+                Arrays.sort( configFiles, (File a, File b) -> a.getName().compareTo( b.getName() ));
+                for( File f : configFiles ) {
+                    try ( FileInputStream configStream = new FileInputStream( f ) ) {
+                        configProps.load(configStream);
+
+                    } catch( IOException ex ) {
+                        fatal( "Cannot read config file: " + config );
+                    }
+                }
+
+            } else {
+                fatal( "Unsupported type of config file: " + config );
             }
 
             if( configProps.containsKey( "diet4j!directory" )) {
@@ -304,7 +326,16 @@ public class Diet4jDaemon
             DaemonInitException
 
     {
-        throw new DaemonInitException( msg, cause );
+        if( cause != null && ( cause instanceof ModuleResolutionException )) {
+            if( msg != null ) {
+                msg += "\nModule requirement cannot be resolved:\n" + ((ModuleResolutionException)cause).getDependencyMessage();
+            } else {
+                msg = "Module requirement cannot be resolved:\n" + ((ModuleResolutionException)cause).getDependencyMessage();
+            }
+            throw new DaemonInitException( msg, cause );
+        } else {
+            throw new DaemonInitException( msg, cause );
+        }
     }
 
     /**

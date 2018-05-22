@@ -33,6 +33,8 @@ public class ModuleMeta
       *
       * @param moduleGroupId the Maven groupId of the to-be-created Module
       * @param moduleArtifactId the Maven artifactId of the to-be-created Module
+      * @param modulePackaging the Maven packaging of the to-be-created Module
+      * @param moduleClassifier the Maven classifier of the to-be-created Module
       * @param moduleVersion the version of the to-be-created Module, may be null (but that's discouraged)
       * @param moduleUserNames the name shown to the user of the to-be-created Module, keyed by the locale
       * @param moduleUserDescriptions the description shown to the user of the to-be-created Module, keyed by the locale
@@ -46,6 +48,8 @@ public class ModuleMeta
     protected ModuleMeta(
             String               moduleGroupId,
             String               moduleArtifactId,
+            String               modulePackaging,
+            String               moduleClassifier,
             String               moduleVersion,
             Map<String,String>   moduleUserNames,
             Map<String,String>   moduleUserDescriptions,
@@ -58,6 +62,8 @@ public class ModuleMeta
     {
         theModuleGroupId               = moduleGroupId;
         theModuleArtifactId            = moduleArtifactId;
+        theModulePackaging             = modulePackaging;
+        theModuleClassifier            = moduleClassifier;
         theModuleVersion               = moduleVersion;
         theModuleUserNames             = moduleUserNames;
         theModuleUserDescriptions      = moduleUserDescriptions;
@@ -188,6 +194,26 @@ public class ModuleMeta
     public Map<String,String> getModuleUserDescriptions()
     {
         return theModuleUserDescriptions;
+    }
+    
+    /**
+     * Obtain the packaging of this Module.
+     * 
+     * @return the packging of this Module
+     */
+    public final String getModulePackaging()
+    {
+        return theModulePackaging;
+    }
+    
+    /**
+     * Obtain the classifier of this Module, if any.
+     * 
+     * @return the classifier of this Module, or null
+     */
+    public final String getModuleClassifier()
+    {
+        return theModuleClassifier;
     }
 
     /**
@@ -359,6 +385,16 @@ public class ModuleMeta
     protected String theModuleArtifactId;
 
     /**
+     * The packaging of the module.
+     */
+    protected String theModulePackaging;
+    
+    /**
+     * The classifier of the module.
+     */
+    protected String theModuleClassifier;
+
+    /**
      * The version of the module.
      */
     protected String theModuleVersion;
@@ -400,6 +436,17 @@ public class ModuleMeta
      */
     protected String theResourceJarEntryPrefix;
 
+
+    /**
+     * The name of the Module activation/deactivation class.
+     */
+    protected String theActivationClassName;
+
+    /**
+     * The name of the class in this Module which provides a method to
+     * run this Module.
+     */
+    protected String theRunClassName;
     /**
      * The resourceJarEntryPrefix for JAR files.
      */
@@ -416,13 +463,7 @@ public class ModuleMeta
     public static final String UNPACKED_RESOURCE_JAR_ENTRY_PREFIX = "";
 
     /**
-     * The name of the Module activation/deactivation class.
+     * Default value for the packaging.
      */
-    protected String theActivationClassName;
-
-    /**
-     * The name of the class in this Module which provides a method to
-     * run this Module.
-     */
-    protected String theRunClassName;
+    public static final String DEFAULT_PACKAGING = "jar";
 }

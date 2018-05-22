@@ -111,8 +111,8 @@ public abstract class AbstractModuleRegistry
                     dependentModules          = new Module[ reqs.length ];
 
                     for( int i=0 ; i<reqs.length ; ++i ) {
-                        Module dependModule = null;
-                        ModuleMeta [] dependAds = determineResolutionCandidates( reqs[i] );
+                        Module        dependModule = null;
+                        ModuleMeta [] dependAds    = determineResolutionCandidates( reqs[i] );
 
                         Exception chained = null;
                         for( int j=0 ; j<dependAds.length ; ++j ) {

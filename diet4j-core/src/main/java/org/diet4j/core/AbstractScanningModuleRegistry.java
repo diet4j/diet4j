@@ -406,6 +406,8 @@ public abstract class AbstractScanningModuleRegistry
 
         String moduleGroupId    = "${project.groupId}"; // default to what's in the Properties
         String moduleArtifactId = "${project.artifactId}"; // default to what's in the Properties
+        String modulePackaging  = ModuleMeta.DEFAULT_PACKAGING;
+        String moduleClassifier = null;
         String moduleVersion    = "${project.version}";    // default to what's in the Properties
         String parentGroupId    = null;
         String parentVersion    = null;
@@ -629,6 +631,8 @@ public abstract class AbstractScanningModuleRegistry
             ret = new ModuleMeta( // FIXME: extract more info from pom files
                     moduleGroupId,
                     moduleArtifactId,
+                    modulePackaging,
+                    moduleClassifier,
                     moduleVersion,
                     null,
                     null,

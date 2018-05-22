@@ -83,6 +83,33 @@ public class ModuleResolutionException
     }
 
     /**
+     * Constructs a String containing a chain of dependencies, for error reporting.
+     * 
+     * @return the String
+     */
+    public String getDependencyMessage()
+    {
+        StringBuilder buf = new StringBuilder();
+        String        sep = "";
+        
+        for( Throwable current = this; current != null; current = current.getCause()) {
+            if( current instanceof ModuleResolutionException ) {
+                ModuleResolutionException realCurrent = (ModuleResolutionException) current;
+                if( realCurrent.theRequirement != null ) {
+                    buf.append( sep ).append( realCurrent.theRequirement.toString() );
+                } else {
+                    buf.append( sep ).append( "?" );
+                }
+                sep = "\n";
+            } else {
+                buf.append( sep ).append( current.toString() );
+                break;
+            }
+        }
+        return buf.toString();
+    }
+
+    /**
      * The ModuleRequirement that could not be met.
      */
     protected ModuleRequirement theRequirement;
