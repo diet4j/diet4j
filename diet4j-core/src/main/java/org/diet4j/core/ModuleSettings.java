@@ -112,7 +112,7 @@ public class ModuleSettings
     }
 
     /**
-     * Obtain a a particular setting as string.
+     * Obtain a a particular setting as integer.
      *
      * @param key the key for the setting
      * @param defaultValue the default value, if the setting does not exist
@@ -128,6 +128,40 @@ public class ModuleSettings
         String found = theMap.get( key );
         if( found != null ) {
             return Integer.parseInt( found );
+        } else {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Obtain a a particular setting as boolean.
+     *
+     * @param key the key for the setting
+     * @return the value for the setting, or null
+     */
+    public Boolean getBoolean(
+            String key )
+    {
+        return getBoolean( key, null );
+    }
+
+    /**
+     * Obtain a a particular setting as boolean.
+     *
+     * @param key the key for the setting
+     * @param defaultValue the default value, if the setting does not exist
+     * @return the value for the setting, or the defaultValue
+     */
+    public Boolean getBoolean(
+            String  key,
+            Boolean defaultValue )
+    {
+        if( theMap == null ) {
+            return defaultValue;
+        }
+        String found = theMap.get( key );
+        if( found != null ) {
+            return Boolean.parseBoolean( found );
         } else {
             return defaultValue;
         }
