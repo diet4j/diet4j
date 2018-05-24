@@ -27,6 +27,8 @@ import java.net.URL;
 import java.net.URLStreamHandler;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.jar.Attributes;
@@ -142,7 +144,7 @@ public class ModuleClassLoader
     }
 
     /**
-     * Obtain an Enumeration of Resources.
+     * Finds all the resources with the given name.
      *
      * @param name the name of the Resource
      * @return the Enumeration
@@ -154,13 +156,50 @@ public class ModuleClassLoader
         throws
             IOException
     {
-        ClassLoader parent = getParent();
+        HashSet<URL> resources = new HashSet<>();
+        addResources( name, resources, new HashSet<>() );
 
-        URL localResource = getResource( name );
-        if( localResource != null ) {
-            return new CompoundIterator<>( localResource, parent.getResources( name ));
-        } else {
-            return parent.getResources( name );
+        Iterator<URL> iter = resources.iterator();
+
+        return new Enumeration<URL>() {
+                @Override
+                public boolean hasMoreElements() {
+                    return iter.hasNext();
+                }
+                @Override
+                public URL nextElement() {
+                    return iter.next();
+                }
+        };
+    }
+
+    /**
+     * Internal helper to construct the return value for getResources().
+     * 
+     * @param name the name of the Resource
+     * @param resources place of aggregation
+     * @param already the already-consulted ModuleClassLoaders
+     * @throws IOException thrown if an I/O error occurred
+     */
+    protected void addResources(
+            String                 name,
+            Set<URL>               resources,
+            Set<ModuleClassLoader> already )
+        throws
+            IOException
+    {
+        URL found = findResource( name );
+        if( found != null ) {
+            resources.add( found );
+        }
+
+        for( int i=0 ; i<theDependencyClassLoaders.length ; ++i ) {
+            if( theDependencyClassLoaders[i] != null ) {
+                if( !already.contains( theDependencyClassLoaders[i] )) {
+                    theDependencyClassLoaders[i].addResources( name, resources, already );
+                    already.add(  theDependencyClassLoaders[i] );
+                }
+            }
         }
     }
 
@@ -389,6 +428,7 @@ public class ModuleClassLoader
      * @param pkgname the name of the package
      * @param man the applicable Manifest
      * @param url the URL
+     * @return the Package
      */
     protected Package getAndVerifyPackage(
             String   pkgname,
