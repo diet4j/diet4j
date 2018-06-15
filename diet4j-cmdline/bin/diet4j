@@ -23,12 +23,13 @@
 # DIET4J_REPO=('<path>' '<path>' ...)
 # DIET4J_JAR=<path>
 # JAVA_OPTS=<options>
+# for debugging: JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y'
 
 if [[ -r /etc/diet4j/diet4j.conf ]]; then
   . /etc/diet4j/diet4j.conf
 fi
 
-VERSION=${DIET4J_VERSION:-0.16}
+VERSION=${DIET4J_VERSION:-0.17}
 if [[ -v DIET4J_REPO ]]; then
     REPO=${DIET4J_REPO[@]}
 else
