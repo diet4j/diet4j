@@ -241,11 +241,16 @@ public class Diet4jDaemon
             }
 
         } catch( Throwable ex ) {
-            fatal( "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
+            Throwable rootCause = ex;
+            while( rootCause.getCause() != null ) {
+                rootCause = rootCause.getCause();
+            }
+            fatal( "Run of module " + theModules[0].getModuleMeta() + " failed. Root cause: " + rootCause.getMessage(), ex );
         }
     }
 
     @Override
+    @SuppressWarnings("null")
     public void stop()
         throws
             ModuleDeactivationException,
@@ -266,7 +271,11 @@ public class Diet4jDaemon
             }
         }
         if( failed != null ) {
-            fatal( "Dectivation of module " + failed.getModuleMeta() + " failed", thrown );
+            Throwable rootCause = thrown;
+            while( rootCause.getCause() != null ) {
+                rootCause = rootCause.getCause();
+            }
+            fatal( "Dectivation of module " + failed.getModuleMeta() + " failed. Root cause: " + rootCause.getMessage(), thrown );
         }
     }
 
@@ -302,7 +311,6 @@ public class Diet4jDaemon
             Throwable cause )
         throws
             DaemonInitException
-
     {
         throw new DaemonInitException( msg, cause );
     }
