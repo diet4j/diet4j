@@ -131,8 +131,8 @@ public abstract class CmdlineBootLoader
             System.arraycopy( remaining, dashDash+1, theRunArguments, 0 , theRunArguments.length );
         }
 
-        theRunClassName  = parameters.get( "run" );
-        theRunMethodName = parameters.get( "method" );
+        theRunClassName  = parameters.get( "runclass" );
+        theRunMethodName = parameters.get( "runmethod" );
 
         String [] directories = parameters.getMany( "directory" );
 
@@ -317,7 +317,7 @@ public abstract class CmdlineBootLoader
         PrintStream w = System.out;
 
         w.println( "Synopsis: (diet4j-core " + Version.VERSION + ", built " + Version.BUILDTIME + ")" );
-        w.println( "[ --directory <directory> ]... [ --run <class> ][ --method <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
+        w.println( "[ --directory <directory> ]... [ --runclass <class> ][ --runmethod <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
         w.println( "    where:" );
         w.println( "        <directory>:  directory in which to look for modules" );
         w.println( "        <runclass>:   name of a non-default class whose main() method to run, instead of the rootmodule's" );

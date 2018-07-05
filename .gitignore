@@ -3,3 +3,5 @@ nbactions.xml
 *.versionsBackup
 diet4j-*.pkg*
 pkg/
+*.iml
+.idea

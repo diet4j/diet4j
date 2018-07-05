@@ -312,6 +312,27 @@ public class Diet4jDaemon
         throws
             DaemonInitException
     {
+        // jsvc truncates the stack trace that it dumps, so we need to do it ourselves.
+        System.err.print( "FATAL: " );
+        System.err.println( msg != null ? msg : "no message" );
+
+        if( cause != null ) {
+
+            for( Throwable current = cause; current != null; current = current.getCause() ) {
+                if( current != cause ) {
+                    System.err.print( "Caused by: " );
+                }
+                System.err.println( current.getMessage() != null ? current.getMessage() : current.getClass().getName() );
+                for( StackTraceElement e : current.getStackTrace() ) {
+                    System.err.println( String.format(
+                            "    at %s.%s(%s:%d)",
+                               e.getClassName(),
+                               e.getMethodName(),
+                               e.getFileName(),
+                               e.getLineNumber() ) );
+                }
+            }
+        }
         throw new DaemonInitException( msg, cause );
     }
 
