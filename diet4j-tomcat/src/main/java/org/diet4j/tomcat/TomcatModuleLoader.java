@@ -330,7 +330,7 @@ public class TomcatModuleLoader
             }
         }
         if( failed != null ) {
-            throw new LifecycleException( "Dectivation of module " + failed.getModuleMeta() + " failed", thrown );
+            throw new LifecycleException( "Deactivation of module " + failed.getModuleMeta() + " failed", thrown );
         }
     }
 
