@@ -96,12 +96,37 @@ public class Diet4jDaemon
         if( config != null ) {
             Properties configProps = new Properties();
 
-            try ( FileInputStream configStream = new FileInputStream( config ) ) {
-                configProps.load(configStream);
+            // read properties from config file, or if directory, properties from all files in directory (non-recursive)
+            File configFile = new File( config );
+            if( configFile.exists() ) {
+                if( configFile.isFile() ) {
+                    try ( FileInputStream configStream = new FileInputStream( configFile ) ) {
+                        configProps.load( configStream );
 
-            } catch( IOException ex ) {
-                fatal( "Cannot read config file: " + config );
+                    } catch( IOException ex ) {
+                        fatal( "Cannot read config file: " + configFile.getAbsolutePath(), ex );
+                    }
+                } else if( configFile.isDirectory() ) {
+                    for( File subConfigFile : configFile.listFiles() ) {
+                        if( subConfigFile.isFile() ) {
+                            Properties subConfigProps = new Properties();
+                            try ( FileInputStream configStream = new FileInputStream( subConfigFile ) ) {
+                                subConfigProps.load( configStream );
+
+                            } catch( IOException ex ) {
+                                fatal( "Cannot read config file: " + subConfigFile.getAbsolutePath(), ex );
+                            }
+                            configProps.putAll( subConfigProps ); // maybe it would merge itself. but the docs don't say
+                        }
+                    }
+                } else {
+                    fatal( "Config file is neither file nor directory: " + config );
+                }
+            } else {
+                fatal( "Config file does not exist: " + config );
             }
+
+
 
             if( configProps.containsKey( "diet4j!directory" )) {
                 if( directories != null && directories.length > 0 ) {
@@ -275,7 +300,7 @@ public class Diet4jDaemon
             while( rootCause.getCause() != null ) {
                 rootCause = rootCause.getCause();
             }
-            fatal( "Dectivation of module " + failed.getModuleMeta() + " failed. Root cause: " + rootCause.getMessage(), thrown );
+            fatal( "Deactivation of module " + failed.getModuleMeta() + " failed. Root cause: " + rootCause.getMessage(), thrown );
         }
     }
 
