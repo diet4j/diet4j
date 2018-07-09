@@ -597,6 +597,7 @@ public abstract class AbstractScanningModuleRegistry
             ModuleRequirement [] runTime = new ModuleRequirement[ runTimeRequirements.size() ];
 
             // copy into arrays, and while we are at it, replace symbolic names in version and groupId where needed
+            int count = 0;
             for( int i=0 ; i<runTime.length ; ++i ) {
                 Object [] runTimeRequirement = runTimeRequirements.get( i );
                 String  dependencyGroupId    = (String)  runTimeRequirement[0];
@@ -614,11 +615,37 @@ public abstract class AbstractScanningModuleRegistry
                     dependencyVersion = replaceProperties( pomProperties, dependencyVersion );
                 }
 
-                runTime[i] = ModuleRequirement.create(
-                        dependencyGroupId,
-                        dependencyArtifactId,
-                        dependencyVersion,
-                        isOptional ); // this may use symbolic names for version and groupId
+                try {
+                    runTime[count] = ModuleRequirement.create(
+                            dependencyGroupId,
+                            dependencyArtifactId,
+                            dependencyVersion,
+                            isOptional ); // this may use symbolic names for version and groupId
+
+                    ++count;
+
+                } catch( IllegalArgumentException ex ) {
+                    if( !isOptional ) {
+                        throw new IllegalArgumentException(
+                                "When examining Module "
+                                        + (moduleGroupId != null ? moduleGroupId : "")
+                                        + ":"
+                                        + (moduleArtifactId != null ? moduleArtifactId : "")
+                                        + ":"
+                                        + (moduleVersion != null ? moduleVersion : "")
+                                        + ": "
+                                        + ex.getMessage() );
+                    }
+                }
+            }
+
+            if( count < runTime.length ) {
+                ModuleRequirement [] newRunTime = new ModuleRequirement[ count ];
+                for( int i=runTime.length-1 ; count > 0 ; --i ) {
+                    if( runTime[i] != null ) {
+                        newRunTime[--count] = runTime[i];
+                    }
+                }
             }
 
             String activationClassName = pomProperties.get( ACTIVATION_CLASS_PROPERTY );
