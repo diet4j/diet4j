@@ -22,9 +22,11 @@ package org.diet4j.status;
 import java.io.PrintStream;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.diet4j.core.Module;
@@ -82,7 +84,24 @@ public class StatusMain
             return;
         }
         if( flags.remove( "s" ) != null || flags.remove( "showmoduleregistry" ) != null ) {
-            showModuleRegistry();
+            try {
+                if( flags.remove( "recursive" ) != null || flags.remove( "r" ) != null ) {
+                    showHierarchicalModuleRegistry();
+                } else {
+                    showFlatModuleRegistry();
+                }
+            } catch( ModuleNotFoundException | ParseException ex ) {
+
+                StringBuilder msg = new StringBuilder();
+                msg.append( ex.getLocalizedMessage() );
+
+                Throwable cause = ex.getCause();
+                while( cause != null ) {
+                    msg.append( "\n    caused by: " ).append( cause.getLocalizedMessage() );
+                    cause = cause.getCause();
+                }
+                log.severe( msg.toString() );
+            }
             return;
         }
         String module = flags.remove( "m" );
@@ -124,7 +143,7 @@ public class StatusMain
      *
      * @return the ModuleRegistry
      */
-    public static ModuleRegistry findRegistry()
+    static ModuleRegistry findRegistry()
     {
         ClassLoader loader = StatusMain.class.getClassLoader();
         if( loader instanceof ModuleClassLoader ) {
@@ -133,17 +152,17 @@ public class StatusMain
             throw new RuntimeException( "Cannot determine ModuleClassLoader. Are you running this using diet4j?" );
         }
     }
+
     /**
-     * Show the content of the Module Registry.
+     * Show the content of the Module Registry by printing a flat list of all Modules.
      */
-    public static void showModuleRegistry()
+    static void showFlatModuleRegistry()
     {
         ModuleRegistry registry = findRegistry();
         Set<String>    names    = registry.nameSet();
         PrintStream    out      = System.out;
 
-        ArrayList<String> sortedNames = new ArrayList<>();
-        sortedNames.addAll( names );
+        ArrayList<String> sortedNames = new ArrayList<>( names );
         Collections.sort( sortedNames );
 
         out.println( registry.toString() );
@@ -166,9 +185,113 @@ public class StatusMain
                     out.print( ")" );
                 }
             } catch( ParseException ex ) {
-                out.print( "<Cannot parse into ModuleRequirement>: " + name );
+                log.severe( "Cannot parse into ModuleRequirement: " + name );
             }
             out.print( "\n" );
+        }
+    }
+
+    /**
+     * Show the content of the Module Registry by printing a dependency tree of all Modules.
+     *
+     * @throws ModuleNotFoundException thrown if a needed Module could not be found
+     * @throws ParseException thrown if the provided Module name was invalid
+     */
+    static void showHierarchicalModuleRegistry()
+        throws
+            ModuleNotFoundException,
+            ParseException
+    {
+        ModuleRegistry registry = findRegistry();
+        Set<String>    names    = registry.nameSet();
+        PrintStream    out      = System.out;
+
+        List<Module>            allModules = new ArrayList<>();
+        HashMap<Module,Boolean> usageMap   = new HashMap<>();
+
+        // create usage map
+        for( String name : names ) {
+            ModuleMeta [] moduleMetas = registry.determineResolutionCandidates( ModuleRequirement.parse( name ) );
+            if( moduleMetas.length == 0  ) {
+                throw new RuntimeException( "Cannot find a module: " + name );
+            }
+            if( moduleMetas.length > 1 ) {
+                StringBuilder msg = new StringBuilder();
+                msg.append( "More than one module found:" );
+                for( ModuleMeta meta : moduleMetas ) {
+                    msg.append( "\n    " );
+                    msg.append( meta.toString() );
+                }
+                throw new RuntimeException( msg.toString() );
+            }
+
+            try {
+                Module   module       = registry.resolve( moduleMetas[0], true );
+                Module[] dependencies = registry.determineRuntimeDependencies( module );
+
+                allModules.add( module );
+
+                if( dependencies != null ) {
+                    for( Module dep : dependencies ) {
+                        if( dep != null ) {
+                            usageMap.put( dep, Boolean.TRUE );
+                        }
+                    }
+                }
+            } catch( ModuleResolutionException ex ) {
+                log.severe( "Cannot resolve recursively " + moduleMetas[0] + ": " + ex.getMessage() );
+            }
+        }
+
+        Module [] topModules = allModules.stream().filter( (Module m) -> usageMap.get( m ) == null ).toArray( Module[]::new );
+
+        out.println( "# Note: resolved run-time dependencies only" );
+        Set<Module> haveAlready = new HashSet<>();
+
+        showModulesInHierarchy( topModules, 0, haveAlready, registry, out );
+    }
+
+    /**
+     * Helper to show an unordered array of Modules as part of a hierarchy.
+     *
+     * @param ms the Modules to show on this level of the hierarchy
+     * @param indent how many levels of indent
+     * @param haveAlready keep track of modules we already have displayed
+     * @param registry the ModuleRegistry
+     * @param out the stream to write to
+     */
+    static void showModulesInHierarchy(
+            Module []      ms,
+            int            indent,
+            Set<Module>    haveAlready,
+            ModuleRegistry registry,
+            PrintStream    out )
+    {
+        Arrays.sort( ms, (Module a, Module b) ->
+                ( a == null || b == null )
+                ? 0
+                : a.getModuleMeta().toString().compareTo( b.getModuleMeta().toString() ));
+
+        for( Module m : ms ) {
+            if( m == null ) {
+                continue;
+            }
+            for( int i=0 ; i<indent ; ++i ) {
+                out.print( "    " );
+            }
+            out.print( m.getModuleMeta().toString() );
+
+            if( haveAlready != null && haveAlready.contains( m )) {
+                out.println(  " -- repeated, see above" );
+
+            } else {
+                haveAlready.add( m );
+
+                out.println( ":" );
+
+                Module[] dependencies = registry.determineRuntimeDependencies( m );
+                showModulesInHierarchy( dependencies, indent + 1, haveAlready, registry, out );
+            }
         }
     }
 
@@ -184,7 +307,7 @@ public class StatusMain
      * @throws ModuleResolutionException thrown if a needed Module could not be resolved
      * @throws ParseException thrown if the provided Module name was invalid
      */
-    public static void showModule(
+    static void showModule(
             String  name,
             boolean recursive,
             boolean loong,
@@ -231,7 +354,7 @@ public class StatusMain
      * @param verbose if true, show more detail
      * @param out the stream to print to
      */
-    protected static void showModule(
+     static void showModule(
             ModuleRequirement req,
             Module            mod,
             int               indent,
@@ -271,17 +394,17 @@ public class StatusMain
                     showModule( reqs[i], deps[i], indent+1, haveAlready, recursive, verbose, out );
                 }
             } else if( verbose ) {
-                ModuleRequirement [] reqs = mod.getModuleMeta().getRuntimeModuleRequirements();
-                for( int i=0 ; i<reqs.length ; ++i ) {
-                    for( int j=0 ; j<=indent ; ++j ) {
+                ModuleRequirement [] dependencyReqs = mod.getModuleMeta().getRuntimeModuleRequirements();
+                for( ModuleRequirement dependencyReq : dependencyReqs ) {
+                    for( int j = 0; j <= indent; ++j ) {
                         out.print( "    " );
                     }
-                    out.print( reqs[i] );
-                    out.print( " (");
-                    if( reqs[i].isOptional() ) {
+                    out.print( dependencyReq );
+                    out.print( " (" );
+                    if( dependencyReq.isOptional() ) {
                         out.println( "optional, " );
                     }
-                    if( mod.getModuleRegistry().determineResolutionCandidates( reqs[i] ).length > 0 ) {
+                    if( mod.getModuleRegistry().determineResolutionCandidates( dependencyReq ).length > 0 ) {
                         out.print( "resolvable" );
                     } else {
                         out.print( "unresolvable" );
@@ -305,7 +428,7 @@ public class StatusMain
     {
         System.out.println( "Synopsis:" );
         System.out.println( "    --module <module> [--recursive [--long]][--verbose] display information about the named Module" );
-        System.out.println( "    --showmoduleregistry                                show all known Modules" );
+        System.out.println( "    --showmoduleregistry [--recursive]                  show all known Modules" );
         System.out.println( "    --help                                              this message" );
     }
 
