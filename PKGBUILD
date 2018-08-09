@@ -1,12 +1,12 @@
 pkgname=$(basename $(pwd))
-pkgver=0.18.3
+pkgver=0.18.4
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')
 url="http://jdiet.org/"
 license=('Apache')
 makedepends=('maven' 'jdk8-openjdk' )
-depends=('java-runtime=8')
+depends=('java-runtime')
 optdepends=('java-jsvc')
 
 prepare() {
