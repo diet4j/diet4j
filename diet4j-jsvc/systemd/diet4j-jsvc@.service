@@ -21,8 +21,10 @@ Environment='JSVC_USER=root'
 Environment='DIET4J_VERSION=0.18.3'
 Environment='DIET4J_ARGS=--config /etc/diet4j/diet4j-jsvc-%i.properties'
 
-# For debugging, comment-out the next line
+# For debugging up to Java 8, comment-out the next line
 # Environment='DEBUG_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8888'
+# For debugging from Java 9 onwards, comment-out the next line
+# Environment='DEBUG_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8888'
 
 # Optional environment file that overrides values defined above:
 EnvironmentFile=-/etc/diet4j/diet4j-jsvc-%i.env
