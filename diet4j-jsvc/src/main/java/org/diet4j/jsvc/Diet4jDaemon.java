@@ -316,7 +316,7 @@ public class Diet4jDaemon
      * @param msg the message
      * @throws DaemonInitException tell the daemon about it, always thrown
      */
-    protected static void fatal(
+    protected void fatal(
             String msg )
         throws
             DaemonInitException
@@ -331,12 +331,24 @@ public class Diet4jDaemon
      * @param cause the cause
      * @throws DaemonInitException tell the daemon about it, always thrown
      */
-    protected static void fatal(
+    protected void fatal(
             String    msg,
             Throwable cause )
         throws
             DaemonInitException
     {
+        // try to clean up modules already initialized
+        for( int i=theModuleMetas.length-1 ; i>=0 ; --i ) {
+            try {
+                if( theModules[i] != null ) {
+                    theModules[i].deactivateRecursively();
+                }
+
+            } catch( Throwable ex ) {
+                // ignore
+            }
+        }
+
         // jsvc truncates the stack trace that it dumps, so we need to do it ourselves.
         System.err.print( "FATAL: " );
         System.err.println( msg != null ? msg : "no message" );

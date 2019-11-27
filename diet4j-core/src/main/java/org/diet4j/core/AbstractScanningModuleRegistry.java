@@ -518,10 +518,7 @@ public abstract class AbstractScanningModuleRegistry
                             }
                             if( dependencyGroupdId != null && dependencyArtifactId != null ) {
                                 // there are some poms that do not have a dependency version
-                                if( "compile".equals( dependencyScope )) {
-                                    // ignore
-
-                                } else if( "test".equals( dependencyScope )) {
+                                if( "test".equals( dependencyScope )) {
                                     // ignore
 
                                 } else if( !"provided".equals( dependencyScope )) {

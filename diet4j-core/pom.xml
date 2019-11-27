@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.diet4j</groupId>
         <artifactId>diet4j</artifactId>
-        <version><!-- PKGVER -->0.18.3<!-- /PKGVER --></version>
+        <version><!-- PKGVER -->0.18.6<!-- /PKGVER --></version>
     </parent>
 
     <build>
