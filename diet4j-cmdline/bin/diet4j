@@ -20,7 +20,7 @@
 
 # Allowed settings in /etc/diet4j.conf:
 # DIET4J_VERSION=<version>
-# DIET4J_REPO=('<path>' '<path>' ...)
+# DIET4J_REPO=<path>:<path>
 # DIET4J_JAR=<path>
 # JAVA_OPTS=<options>
 # for debugging: JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y'
@@ -29,13 +29,9 @@ if [[ -r /etc/diet4j/diet4j.conf ]]; then
   . /etc/diet4j/diet4j.conf
 fi
 
-VERSION=${DIET4J_VERSION:-0.18.6}
-if [[ -v DIET4J_REPO ]]; then
-    REPO=${DIET4J_REPO[@]}
-else
-    REPO=('/usr/lib/java')
-fi
+VERSION=${DIET4J_VERSION:-0.18.7}
+REPO=${DIET4J_REPO:-/usr/lib/java:/ubos/lib/java}
 
 JAR=${DIET4J_JAR:-/usr/lib/java/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar}
 
-java ${JAVA_OPTS} -jar ${JAR} $(for d in ${REPO[@]}; do echo --directory "${d}"; done) $@
+java ${JAVA_OPTS} -jar ${JAR} --directories ${REPO} $@

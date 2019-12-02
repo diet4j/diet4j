@@ -167,6 +167,15 @@ public class InClasspathModuleRegistry
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString()
+    {
+        return "ModuleRegistry scanning the class path";
+    }
+
+    /**
      * The ClassLoader that was used to scan.
      */
     protected final ClassLoader theClassLoader;

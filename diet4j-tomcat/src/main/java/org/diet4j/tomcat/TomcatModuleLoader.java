@@ -261,7 +261,7 @@ public class TomcatModuleLoader
                 metas[i] = theModuleRegistry.determineSingleResolutionCandidate( moduleRequirements[i] );
 
             } catch( Throwable ex ) {
-                throw new LifecycleException( "Cannot find module " + moduleRequirements[i], ex );
+                throw new LifecycleException( "Cannot find module " + moduleRequirements[i] + " in registry " + theModuleRegistry, ex );
             }
         }
 

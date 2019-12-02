@@ -233,7 +233,7 @@ public class Diet4jDaemon
                 theModuleMetas[i] = theModuleRegistry.determineSingleResolutionCandidate( theModuleRequirements[i] );
 
             } catch( Throwable ex ) {
-                fatal( "Cannot find module " + theModuleRequirements[i], ex );
+                fatal( "Cannot find module " + theModuleRequirements[i] + " in registry " + theModuleRegistry, ex );
             }
         }
     }

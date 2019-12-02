@@ -211,9 +211,10 @@ public class StatusMain
 
         // create usage map
         for( String name : names ) {
-            ModuleMeta [] moduleMetas = registry.determineResolutionCandidates( ModuleRequirement.parse( name ) );
+            ModuleRequirement req = ModuleRequirement.parse( name );
+            ModuleMeta [] moduleMetas = registry.determineResolutionCandidates( req );
             if( moduleMetas.length == 0  ) {
-                throw new RuntimeException( "Cannot find a module: " + name );
+                throw new RuntimeException( "Cannot find module " + req + " in registry " + registry );
             }
             if( moduleMetas.length > 1 ) {
                 StringBuilder msg = new StringBuilder();
@@ -324,7 +325,7 @@ public class StatusMain
         ModuleMeta []     moduleMetas = registry.determineResolutionCandidates( req );
 
         if( moduleMetas.length == 0  ) {
-            throw new RuntimeException( "Cannot find a module: " + name );
+            throw new RuntimeException( "Cannot find module " + req + " in registry " + registry );
         }
         if( moduleMetas.length > 1 ) {
             StringBuilder msg = new StringBuilder();

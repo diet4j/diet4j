@@ -146,9 +146,7 @@ public class ScanningDirectoriesModuleRegistry
     }
 
     /**
-     * Obtain String representation.
-     *
-     * @return String representation
+     * {@inheritDoc}
      */
     @Override
     public String toString()

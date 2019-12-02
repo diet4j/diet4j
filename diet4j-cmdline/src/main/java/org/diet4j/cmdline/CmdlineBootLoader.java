@@ -26,6 +26,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -95,11 +96,12 @@ public abstract class CmdlineBootLoader
             IOException
     {
         CmdlineParameters parameters = new CmdlineParameters(
-            new Parameter( "help",      0 ),
-            new Parameter( "directory", 1, true ),
-            new Parameter( "runclass",  1 ),
-            new Parameter( "runmethod", 1 ),
-            new Parameter( "config",    1 )
+            new Parameter( "help",        0 ),
+            new Parameter( "directory",   1, true ),
+            new Parameter( "directories", 1 ),
+            new Parameter( "runclass",    1 ),
+            new Parameter( "runmethod",   1 ),
+            new Parameter( "config",      1 )
         );
 
         String [] remaining = parameters.parse( args );
@@ -134,7 +136,17 @@ public abstract class CmdlineBootLoader
         theRunClassName  = parameters.get( "runclass" );
         theRunMethodName = parameters.get( "runmethod" );
 
-        String [] directories = parameters.getMany( "directory" );
+        ArrayList<String> directories = new ArrayList<>();
+        if( parameters.get( "directorY" ) != null ) {
+            for( String dir : parameters.getMany( "directory" )) {
+                directories.add( dir );
+            }
+        }
+        if( parameters.get( "directories" ) != null ) {
+            for( String dir : parameters.get( "directories" ).split( "[:;]+" )) {
+                directories.add( dir );
+            }
+        }
 
         Map<ModuleRequirement,Map<String,String>> rawModuleSettings = new HashMap<>();
 
@@ -150,11 +162,20 @@ public abstract class CmdlineBootLoader
             }
 
             if( configProps.containsKey( "diet4j!directory" )) {
-                if( directories != null ) {
+                if( !directories.isEmpty() ) {
                     fatal( "Specified both as argument and in config file: directory" );
                 }
-                directories = configProps.getProperty( "diet4j!directory" ).split( "[,\\s]+" );
-                // FIXME: no spaces or commas in file names
+                for( String dir : configProps.getProperty( "diet4j!directory" ).split( "[,\\s]+" )) {
+                    directories.add( dir );
+                }
+            }
+            if( configProps.containsKey( "diet4j!directories" )) {
+                if( !directories.isEmpty() ) {
+                    fatal( "Specified both as argument and in config file: directories" );
+                }
+                for( String dir : configProps.getProperty( "diet4j!directories" ).split( "[:;]+" )) {
+                    directories.add( dir );
+                }
             }
             if( configProps.containsKey( "diet4j!module" )) {
                 if( moduleNames != null ) {
@@ -261,7 +282,7 @@ public abstract class CmdlineBootLoader
                     theModuleMetas[i] = theRegistry.determineSingleResolutionCandidate( theModuleRequirements[i] );
 
                 } catch( Throwable ex ) {
-                    fatal( "Cannot find module " + theModuleRequirements[i], ex );
+                    fatal( "Cannot find module " + theModuleRequirements[i] + " in registry " + theRegistry );
                 }
             }
 
@@ -317,24 +338,26 @@ public abstract class CmdlineBootLoader
         PrintStream w = System.out;
 
         w.println( "Synopsis: (diet4j-core " + Version.VERSION + ", built " + Version.BUILDTIME + ")" );
-        w.println( "[ --directory <directory> ]... [ --runclass <class> ][ --runmethod <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
+        w.println( "[ --directory <directory> ]... [ --directories <directories> ]... [ --runclass <class> ][ --runmethod <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
         w.println( "    where:" );
-        w.println( "        <directory>:  directory in which to look for modules" );
-        w.println( "        <runclass>:   name of a non-default class whose main() method to run, instead of the rootmodule's" );
-        w.println( "        <runmethod>:  name of a method in the run class to run, instead of main()" );
-        w.println( "        <module>:     name of the module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
-        w.println( "                      The first specified module is the module that is run unless <runclass> is given" );
-        w.println( "        <runarg> ...: argument(s) to the main() method of the run class" );
+        w.println( "        <directory>:   directory in which to look for modules" );
+        w.println( "        <directories>: colon or semicolon-separated list of directories in which to look for modules" );
+        w.println( "        <runclass>:    name of a non-default class whose main() method to run, instead of the rootmodule's" );
+        w.println( "        <runmethod>:   name of a method in the run class to run, instead of main()" );
+        w.println( "        <module>:      name of the module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
+        w.println( "                       The first specified module is the module that is run unless <runclass> is given" );
+        w.println( "        <runarg> ...:  argument(s) to the main() method of the run class" );
         w.println( "--config <configfile>" );
         w.println( "    where:" );
         w.println( "        <configfile>: name of a properties file containing the above values as properties" );
         w.println( "    names of the properties:" );
-        w.println( "        diet4j!directory: comma or space-separated list of directories in which to look for modules" );
-        w.println( "        diet4j!runclass:  name of a non-default class whose main() method to run, instead of the rootmodule's" );
-        w.println( "        diet4j!runmethod: name of a method in the run class to run, instead of main()" );
-        w.println( "        diet4j!module:    comma or space-separated list of module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
-        w.println( "                          The first specified module is the module that is run unless <runclass> is given" );
-        w.println( "        diet4j!runarg:    comma or space-separated argument(s) to the main() method of the run class" );
+        w.println( "        diet4j!directory:   comma or space-separated list of directories in which to look for modules" );
+        w.println( "        diet4j!directories: colon or semicolon-separated list of directories in which to look for modules" );
+        w.println( "        diet4j!runclass:    name of a non-default class whose main() method to run, instead of the rootmodule's" );
+        w.println( "        diet4j!runmethod:   name of a method in the run class to run, instead of main()" );
+        w.println( "        diet4j!module:      comma or space-separated list of module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
+        w.println( "                            The first specified module is the module that is run unless <runclass> is given" );
+        w.println( "        diet4j!runarg:      comma or space-separated argument(s) to the main() method of the run class" );
         w.println( "--help:" );
         w.println( "    this message" );
         w.flush();

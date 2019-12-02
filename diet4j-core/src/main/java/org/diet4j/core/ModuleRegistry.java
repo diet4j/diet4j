@@ -163,6 +163,13 @@ public abstract class ModuleRegistry
             Pattern regex );
 
     /**
+     * Construct printable String, for error reporting.
+     *
+     * @return String
+     */
+    public abstract String toString();
+
+    /**
      * Add a ModuleRegistry listener to be notified when new Modules become available etc.
      *
      * @param newListener the new listener to add
