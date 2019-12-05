@@ -179,4 +179,9 @@ public class InClasspathModuleRegistry
      * The ClassLoader that was used to scan.
      */
     protected final ClassLoader theClassLoader;
+
+    /**
+     * Singleton instance in this case.
+     */
+    private static InClasspathModuleRegistry theSingleton;
 }

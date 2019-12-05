@@ -139,4 +139,9 @@ public class ScanningClasspathModuleRegistry
 
         return metas;
     }
+
+    /**
+     * Singleton instance in this case.
+     */
+    private static ScanningClasspathModuleRegistry theSingleton;
 }

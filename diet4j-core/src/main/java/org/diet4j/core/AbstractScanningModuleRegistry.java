@@ -140,8 +140,8 @@ public abstract class AbstractScanningModuleRegistry
                 if( offset == 0 ) { // not found yet
                     int comp = rpmvercmp( already[i].getModuleVersion(), version );
                     if( comp == 0 ) {
-                        log.log( Level.WARNING,
-                                "Adding module again: {0}: {1}, was: {2}",
+                        log.log( Level.INFO,
+                                "Not adding module again: {0}: {1}, was: {2}",
                                 new Object[] {
                                         add.toString(),
                                         add.getProvidesJar() != null ? add.getProvidesJar().getName() : "<no jar>",

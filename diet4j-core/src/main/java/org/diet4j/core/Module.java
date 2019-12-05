@@ -193,7 +193,7 @@ public class Module
             ModuleNotFoundException,
             ModuleActivationException
     {
-        activateRecursively( getDefaultModuleActivator() );
+        activateRecursively( getDefaultModuleActivator(), true );
     }
 
     /**
@@ -202,12 +202,14 @@ public class Module
      * a non-standard way of activating the Module can be performed.
      *
      * @param activator a ModuleActivator instance that knows how to activate this Module
+     * @param activateAsRoot this is true if the Module is being activated as a root Module
      * @throws ModuleResolutionException thrown if a dependent Module cannot be resolved
      * @throws ModuleNotFoundException thrown if a dependent Module cannot be found
      * @throws ModuleActivationException thrown if this Module, or a dependent Module could not be activated
      */
     public final void activateRecursively(
-            ModuleActivator activator )
+            ModuleActivator activator,
+            boolean         activateAsRoot )
         throws
             ModuleResolutionException,
             ModuleNotFoundException,
@@ -224,7 +226,7 @@ public class Module
                     if( dependencies[i] != null ) {
                         ModuleActivator childActivator = activator.dependentModuleActivator( dependencies[i] );
                         try {
-                            dependencies[i].activateRecursively( childActivator ); // FIXME? Arguments?
+                            dependencies[i].activateRecursively( childActivator, false ); // FIXME? Arguments?
                         } catch( Exception ex ) {
                             throw new ModuleActivationException( theModuleMeta, ex );
                         }
@@ -233,7 +235,8 @@ public class Module
                 theContextObject = activator.activate();
                 // this may throw an exception
 
-                success = true;
+                theIsActivatedAsRoot = activateAsRoot;
+                success              = true;
 
             } finally {
                 if( success ) {
@@ -274,6 +277,7 @@ public class Module
             ModuleDeactivationException
     {
         --theActivationCount;
+        theIsActivatedAsRoot = false; // in any case
         if( theActivationCount == 0 ) {
             Module [] dependencies = theRegistry.determineRuntimeDependencies( this );
 
@@ -483,6 +487,12 @@ public class Module
      * implement a form of "garbage-collection" policy.
      */
     private int theActivationCount = 0;
+
+    /**
+     * Flag set when this Module has been activated as a root Module. It is not set
+     * if the Module has been activated as a dependency of some other Module.
+     */
+    private boolean theIsActivatedAsRoot = false;
 
     /**
      * Activation of this Module may create a context object, which is buffered here.

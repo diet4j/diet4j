@@ -29,16 +29,6 @@ import java.util.regex.Pattern;
 public abstract class ModuleRegistry
 {
     /**
-     * Obtain the singleton instance of this class, or a subclass.
-     *
-     * @return the singleton instance, or null if not set
-     */
-    public static ModuleRegistry getSingleton()
-    {
-        return theSingleton;
-    }
-
-    /**
      * Determine the ModuleMetas that are candidates to resolve a Module dependency, based
      * on the knowledge of this ModuleRegistry.
      *
@@ -186,9 +176,4 @@ public abstract class ModuleRegistry
      */
     public abstract void removeModuleRegistryListener(
             ModuleRegistryListener oldListener );
-
-    /**
-     * The singleton instance of this class. Must be set by subclasses.
-     */
-    protected static ModuleRegistry theSingleton;
 }
