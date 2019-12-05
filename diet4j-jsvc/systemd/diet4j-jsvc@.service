@@ -11,8 +11,8 @@ After=network.target
 
 [Service]
 Type=simple
-PIDFile=/var/run/diet4j-jsvc-%i.pid
-Environment='PIDFILE=/var/run/diet4j-jsvc-%i.pid'
+PIDFile=/run/diet4j-jsvc-%i.pid
+Environment='PIDFILE=/run/diet4j-jsvc-%i.pid'
 Environment='ERRFILE=SYSLOG'
 Environment='OUTFILE=SYSLOG'
 Environment='JAVA_HOME=/usr/lib/jvm/default-runtime'
