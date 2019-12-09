@@ -29,7 +29,7 @@ if [[ -r /etc/diet4j/diet4j.conf ]]; then
   . /etc/diet4j/diet4j.conf
 fi
 
-VERSION=${DIET4J_VERSION:-0.18.7}
+VERSION=${DIET4J_VERSION:-0.18.8}
 REPO=${DIET4J_REPO:-/usr/lib/java:/ubos/lib/java}
 
 JAR=${DIET4J_JAR:-/usr/lib/java/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar}

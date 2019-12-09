@@ -724,7 +724,7 @@ public abstract class AbstractScanningModuleRegistry
             ModuleMeta meta )
     {
         for( Map.Entry<ModuleRequirement,ModuleSettings> e : theModuleSettings.entrySet() ) {
-            if( e.getKey().matches( meta )) {
+            if( e.getKey().matches( meta ) == 1 ) {
                 return e.getValue();
             }
         }

@@ -20,7 +20,10 @@
 package org.diet4j.core;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -197,16 +200,16 @@ public class ModuleRequirement
      * Determine whether a candidate ModuleMeta meets this ModuleRequirement.
      *
      * @param candidate the candidate ModuleMeta
-     * @return true if the ModuleMeta matches this ModuleRequirement
+     * @return 0: does not match: 1: matches perfectly, 2: new version
      */
-    public boolean matches(
+    public int matches(
             ModuleMeta candidate )
     {
         if( theRequiredModuleGroupId != null && !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) ) {
-            return false;
+            return 0;
         }
         if( !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) ) {
-            return false;
+            return 0;
         }
         return matchesVersionRequirement( candidate.getModuleVersion() );
     }
@@ -220,19 +223,25 @@ public class ModuleRequirement
     public ModuleMeta [] findVersionMatchesFrom(
             ModuleMeta [] candidates )
     {
-        ModuleMeta [] ret = new ModuleMeta[ candidates.length ];
+        ModuleMeta [] perfect = new ModuleMeta[ candidates.length ];
+        ModuleMeta [] later   = new ModuleMeta[ candidates.length ];
 
-        int count = 0;
+        int perfectCount = 0;
+        int laterCount   = 0;
         for( int i=0 ; i<candidates.length ; ++i ) {
-            if( matches( candidates[i] )) {
-                ret[count++] = candidates[i];
+            switch( matches( candidates[i] )) {
+                case 1:
+                    perfect[perfectCount++] = candidates[i];
+                    break;
+                case 2:
+                    later[laterCount++] = candidates[i];
+                    break;
             }
         }
-        if( count < ret.length ) {
-            ModuleMeta [] tmp = new ModuleMeta[count];
-            System.arraycopy( ret, 0, tmp, 0, count );
-            ret = tmp;
-        }
+        ModuleMeta [] ret = new ModuleMeta[ perfectCount + laterCount ];
+        System.arraycopy( perfect, 0, ret, 0, perfectCount );
+        System.arraycopy( later, 0, ret, perfectCount, laterCount );
+
         return ret;
     }
 
@@ -241,41 +250,45 @@ public class ModuleRequirement
      * in this ModuleRequirement.
      *
      * @param version the version string
-     * @return true or false
+     * @return 0: does not match: 1: matches perfectly, 2: new version
      */
-    public boolean matchesVersionRequirement(
+    public int matchesVersionRequirement(
             String version )
     {
         // for speed purposes, get exact min version requirement out of the way
         if( theMinRequiredModuleVersionIsInclusive && version != null && version.equals( theMaxRequiredModuleVersion )) {
-            return true;
+            return 1;
         }
 
         ensureVersionsParsed();
 
         Object [][] parsedVersion = parseVersion( version );
 
+        int ret = 1;
         if( theParsedMinRequiredModuleVersion != null ) {
             int comp = compareParsedVersions( theParsedMinRequiredModuleVersion, parsedVersion );
             if( comp > 0 ) {
-                return false;
+                return 0;
             }
             if( comp == 0 && !theMinRequiredModuleVersionIsInclusive ) {
-                return false;
+                return 0;
+            }
+            if( comp != 0 ) {
+                ret = 2;
             }
         }
 
         if( theParsedMaxRequiredModuleVersion != null ) {
             int comp = compareParsedVersions( theParsedMaxRequiredModuleVersion, parsedVersion );
             if( comp < 0 ) {
-                return false;
+                return 0;
             }
             if( comp == 0 && !theMaxRequiredModuleVersionIsInclusive ) {
-                return false;
+                return 0;
             }
         }
 
-        return true;
+        return ret;
     }
 
     /**
@@ -311,8 +324,10 @@ public class ModuleRequirement
         }
         if( a.length > max ) {
             return 1;
-        } else {
+        } else if( b.length > max ) {
             return -1;
+        } else {
+            return 0;
         }
     }
 
@@ -375,12 +390,14 @@ public class ModuleRequirement
             } else {
                 return -1;
             }
-        } else {
+        } else if( b.length > max ) {
             if( b[max] != null ) {
                 return -1;
             } else {
-                return 0;
+                return 0; // should that happen?
             }
+        } else {
+            return 0;
         }
     }
 
@@ -448,22 +465,19 @@ public class ModuleRequirement
     protected Object [][] parseVersion(
             String v )
     {
-        String []   major = v.split( "." );
-        Object [][] ret   = new Object[ major.length ][];
+        String []                    major  = v.split( "\\." );
+        ArrayList<ArrayList<Object>> almost = new ArrayList<>();
 
         for( int i=0 ; i<major.length ; ++i ) {
-            ret[i] = new Object[ major[i].length() ]; // over-allocated
-
-            int count = 0;
-
             StringBuilder currentString = null; // once non-null, we know we are parsing a string
             long          currentLong   = -1;
 
+            almost.add( new ArrayList<Object>());
             for( int j=0 ; j<major[i].length() ; ++j ) {
                 char c = major[i].charAt( j );
                 if( Character.isDigit( c )) {
                     if( currentString != null ) {
-                        ret[i][count++] = currentString.toString();
+                        almost.get( i ).add( currentString.toString());
                         currentString = null;
 
                         currentLong = Character.digit( c, 10 );
@@ -480,15 +494,23 @@ public class ModuleRequirement
                     } else {
                         currentString = new StringBuilder();
                         currentString.append( c );
-                        ret[i][count++] = currentLong;
+                        almost.get( i ).add( currentLong );
                         currentLong = -1;
                     }
                 }
             }
             if( currentString != null ) {
-                ret[i][count++] = currentString.toString();
+                almost.get( i ).add( currentString.toString());
             } else if( currentLong != -1 ) {
-                ret[i][count++] = currentLong;
+                almost.get( i ).add( currentLong );
+            }
+        }
+
+        Object [][] ret = new Object[ almost.size() ][];
+        for( int i=0 ; i<ret.length ; ++i ) {
+            ret[i] = new Object[ almost.get( i ).size() ];
+            for( int j=0 ; j<ret[i].length ; ++j ) {
+                ret[i][j] = almost.get(i).get(j);
             }
         }
         return ret;

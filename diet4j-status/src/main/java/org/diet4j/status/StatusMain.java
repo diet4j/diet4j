@@ -327,15 +327,6 @@ public class StatusMain
         if( moduleMetas.length == 0  ) {
             throw new RuntimeException( "Cannot find module " + req + " in registry " + registry );
         }
-        if( moduleMetas.length > 1 ) {
-            StringBuilder msg = new StringBuilder();
-            msg.append( "More than one module found:" );
-            for( ModuleMeta meta : moduleMetas ) {
-                msg.append( "\n    " );
-                msg.append( meta.toString() );
-            }
-            throw new RuntimeException( msg.toString() );
-        }
 
         Module module = registry.resolve( moduleMetas[0], recursive );
 
