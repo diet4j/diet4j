@@ -23,7 +23,8 @@
 # DIET4J_REPO=<path>:<path>
 # DIET4J_JAR=<path>
 # JAVA_OPTS=<options>
-# for debugging: JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,address=8888,server=y,suspend=y'
+# for debugging: JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,address=*:8888,server=y,suspend=y'
+# WARNING: this opens up your debugger port to the world; maybe you want to use something other than *
 
 if [[ -r /etc/diet4j/diet4j.conf ]]; then
   . /etc/diet4j/diet4j.conf
@@ -34,4 +35,8 @@ REPO=${DIET4J_REPO:-/usr/lib/java:/ubos/lib/java}
 
 JAR=${DIET4J_JAR:-/usr/lib/java/org/diet4j/diet4j-cmdline/${VERSION}/diet4j-cmdline-${VERSION}.jar}
 
-java ${JAVA_OPTS} -jar ${JAR} --directories ${REPO} $@
+if [[ -z "${JAVA_HOME}" ]]; then
+    java ${JAVA_OPTS} -jar ${JAR} --directories ${REPO} $@
+else
+    "${JAVA_HOME}/bin/java" ${JAVA_OPTS} -jar ${JAR} --directories ${REPO} $@
+fi
