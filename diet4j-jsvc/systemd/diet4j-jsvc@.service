@@ -21,8 +21,6 @@ Environment='JSVC_USER=root'
 Environment='DIET4J_VERSION=0.18.8'
 Environment='DIET4J_ARGS=--config /etc/diet4j/diet4j-jsvc-%i.properties'
 
-# For debugging up to and including Java 8, comment-out the next line and connect to port 8888
-# Environment='DEBUG_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8888'
 # For debugging from Java 9 onwards, comment-out the next line and connect to port 8888
 # Environment='DEBUG_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:8888'
 
