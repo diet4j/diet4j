@@ -5,3 +5,4 @@ diet4j-*.pkg*
 pkg/
 *.iml
 .idea
+.gradle/
