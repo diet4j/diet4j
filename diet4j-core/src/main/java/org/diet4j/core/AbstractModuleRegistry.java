@@ -378,6 +378,7 @@ public abstract class AbstractModuleRegistry
         "javax.swing",
         "javax.t",
         "javax.x",
+        "jdk.internal",
         "com.sun.",
         "sun", // sun, sunw
         "org.diet4j.cmdline",
