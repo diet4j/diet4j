@@ -282,7 +282,7 @@ public abstract class CmdlineBootLoader
                     theModuleMetas[i] = theRegistry.determineSingleResolutionCandidate( theModuleRequirements[i] );
 
                 } catch( Throwable ex ) {
-                    fatal( "Cannot find module " + theModuleRequirements[i] + " in registry " + theRegistry );
+                    fatal( "Cannot uniquely find module " + theModuleRequirements[i] + " in registry " + theRegistry );
                 }
             }
 

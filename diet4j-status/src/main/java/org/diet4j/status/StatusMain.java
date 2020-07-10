@@ -86,9 +86,11 @@ public class StatusMain
         if( flags.remove( "s" ) != null || flags.remove( "showmoduleregistry" ) != null ) {
             try {
                 if( flags.remove( "recursive" ) != null || flags.remove( "r" ) != null ) {
-                    showHierarchicalModuleRegistry();
+                    showHierarchicalModuleRegistry(
+                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
                 } else {
-                    showFlatModuleRegistry();
+                    showFlatModuleRegistry(
+                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
                 }
             } catch( ModuleNotFoundException | ParseException ex ) {
 
@@ -155,8 +157,11 @@ public class StatusMain
 
     /**
      * Show the content of the Module Registry by printing a flat list of all Modules.
+     *
+     * @param verbose if true, show more detail
      */
-    static void showFlatModuleRegistry()
+    static void showFlatModuleRegistry(
+            boolean verbose )
     {
         ModuleRegistry registry = findRegistry();
         Set<String>    names    = registry.nameSet();
@@ -170,22 +175,35 @@ public class StatusMain
             out.print( name );
             out.print( ":" );
 
-            try {
-                ModuleMeta [] versions = registry.determineResolutionCandidates( ModuleRequirement.parse( name ) );
-                for( ModuleMeta meta : versions ) {
-                    String version = meta.getModuleVersion();
-                    out.print( " " );
-                    if( version != null ) {
-                        out.print( version );
-                    } else {
-                        out.print( "<?>" );
+            if( verbose ) {
+                try {
+                    ModuleMeta [] versions = registry.determineResolutionCandidates( ModuleRequirement.parse( name ) );
+                    for( ModuleMeta meta : versions ) {
+                        String version = meta.getModuleVersion();
+                        out.print( " " );
+                        if( version != null ) {
+                            out.print( version );
+                        } else {
+                            out.print( "<?>" );
+                        }
+                        out.print( " (" );
+                        out.print( meta.toString() );
+
+                        String activationClassName = meta.getActivationClassName();
+                        String runClassName        = meta.getRunClassName();
+                        if( activationClassName != null ) {
+                            out.print( " Activation class: " );
+                            out.print( activationClassName );
+                        }
+                        if( runClassName != null ) {
+                            out.print( " Run class: " );
+                            out.print( runClassName );
+                        }
+                        out.print( ")" );
                     }
-                    out.print( " (" );
-                    out.print( meta.toString() );
-                    out.print( ")" );
+                } catch( ParseException ex ) {
+                    log.severe( "Cannot parse into ModuleRequirement: " + name );
                 }
-            } catch( ParseException ex ) {
-                log.severe( "Cannot parse into ModuleRequirement: " + name );
             }
             out.print( "\n" );
         }
@@ -194,10 +212,12 @@ public class StatusMain
     /**
      * Show the content of the Module Registry by printing a dependency tree of all Modules.
      *
+     * @param verbose if true, show more detail
      * @throws ModuleNotFoundException thrown if a needed Module could not be found
      * @throws ParseException thrown if the provided Module name was invalid
      */
-    static void showHierarchicalModuleRegistry()
+    static void showHierarchicalModuleRegistry(
+            boolean verbose )
         throws
             ModuleNotFoundException,
             ParseException
@@ -359,10 +379,12 @@ public class StatusMain
             out.print( "    " );
         }
         if( mod != null ) {
+            ModuleMeta meta = mod.getModuleMeta();
+
             out.print( mod.toString() );
             if( verbose ) {
                 out.print( " (" );
-                out.print( mod.getModuleMeta().getProvidesJar().getName());
+                out.print( meta.getProvidesJar().getName());
                 if( req.isOptional() ) {
                     out.println( " optional" );
                 }
@@ -379,16 +401,34 @@ public class StatusMain
             }
 
             if( recursive ) {
-                ModuleRequirement [] reqs = mod.getModuleMeta().getRuntimeModuleRequirements();
+                ModuleRequirement [] reqs = meta.getRuntimeModuleRequirements();
                 Module []            deps = mod.determineRuntimeDependencies();
 
                 for( int i=0 ; i<reqs.length ; ++i ) {
                     showModule( reqs[i], deps[i], indent+1, haveAlready, recursive, verbose, out );
                 }
             } else if( verbose ) {
-                ModuleRequirement [] dependencyReqs = mod.getModuleMeta().getRuntimeModuleRequirements();
+                String activationClassName = meta.getActivationClassName();
+                String runClassName        = meta.getRunClassName();
+
+                if( activationClassName != null ) {
+                    for( int i = 0; i <= indent; ++i ) {
+                        out.print( "    " );
+                    }
+                    out.print( "Activation class: " );
+                    out.println( activationClassName );
+                }
+                if( runClassName != null ) {
+                    for( int i = 0; i <= indent; ++i ) {
+                        out.print( "    " );
+                    }
+                    out.print( "Run class: " );
+                    out.println( runClassName );
+                }
+
+                ModuleRequirement [] dependencyReqs = meta.getRuntimeModuleRequirements();
                 for( ModuleRequirement dependencyReq : dependencyReqs ) {
-                    for( int j = 0; j <= indent; ++j ) {
+                    for( int i = 0; i <= indent; ++i ) {
                         out.print( "    " );
                     }
                     out.print( dependencyReq );
