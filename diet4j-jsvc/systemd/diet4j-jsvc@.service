@@ -18,7 +18,7 @@ Environment='OUTFILE=SYSLOG'
 Environment='JAVA_HOME=/usr/lib/jvm/default-runtime'
 Environment='JSVC_OPTS=-server -debug -nodetach -Djava.io.tmpdir=/var/tmp/diet4j-jsvc-%i'
 Environment='JSVC_USER=root'
-Environment='DIET4J_VERSION=0.18.8'
+Environment='DIET4J_VERSION=0.19'
 Environment='DIET4J_ARGS=--config /etc/diet4j/diet4j-jsvc-%i.properties'
 
 # For debugging from Java 9 onwards, comment-out the next line and connect to port 8888
