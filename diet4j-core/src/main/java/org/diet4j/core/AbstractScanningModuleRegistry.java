@@ -221,18 +221,23 @@ public abstract class AbstractScanningModuleRegistry
                     Stream<JarEntry> metaFiles = jarFile.stream().filter( f -> f.getName().startsWith( "META-INF/" ) );
                     // does not like to be processed twice, and doesn't like to be an iterable
 
+                    // some JARs contain META-INF/maven/<groupid>/<artifactid>/pom.{xml,properties} (multiple)
+                    // and some contain META-INF/pom.{xml,properties} only
+                    // We only use the second form, and hope (?) that the first form is never needed (we don't
+                    // know the groupid and artifactid here yet)
+
                     Iterator<JarEntry> iter = metaFiles.iterator();
                     while( iter.hasNext() ) {
                         JarEntry f = iter.next();
                         String   n = f.getName();
 
-                        if( n.startsWith( "META-INF/maven" )) {
-                            if( n.endsWith( "pom.xml")) {
-                                pomXmlEntry = f;
-                            } else if( f.getName().endsWith( "pom.properties")) {
-                                pomPropertiesEntry = f;
-                            }
-                        } else if( f.getName().equals( "META-INF/MANIFEST.MF")) {
+                        if( n.equals( "META-INF/maven/pom.xml")) {
+                            pomXmlEntry = f;
+
+                        } else if( n.equals( "META-INF/maven/pom.properties" )) {
+                            pomPropertiesEntry = f;
+
+                        } else if( n.equals( "META-INF/MANIFEST.MF")) {
                             manifestEntry = f;
                         }
                     }
