@@ -169,13 +169,18 @@ public class Diet4jDaemon
                     String n2 = realKey.substring( excl + 1 );
 
                     if( !"diet4j".equals( n1 )) {
-                        ModuleRequirement req1 = ModuleRequirement.create( n1 );
-                        Map<String,String> forThisModule = rawModuleSettings.get( req1 );
-                        if( forThisModule == null ) {
-                            forThisModule = new HashMap<>();
-                            rawModuleSettings.put( req1, forThisModule );
+                        try {
+                            ModuleRequirement req1 = ModuleRequirement.parse( n1 );
+                            Map<String,String> forThisModule = rawModuleSettings.get( req1 );
+                            if( forThisModule == null ) {
+                                forThisModule = new HashMap<>();
+                                rawModuleSettings.put( req1, forThisModule );
+                            }
+                            forThisModule.put( n2, configProps.getProperty( realKey ));
+
+                        } catch( ParseException ex ) {
+                            fatal( "Failed to parse String into ModuleRequirement: " + n1 );
                         }
-                        forThisModule.put( n2, configProps.getProperty( realKey ));
                     }
                 }
             }

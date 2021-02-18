@@ -20,11 +20,11 @@
 package org.diet4j.core;
 
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,66 +36,6 @@ public class ModuleRequirement
             Serializable
 {
     private static final long serialVersionUID = 1L; // helps with serialization
-
-    /**
-      * Factory method.
-      *
-      * @param requiredModuleArtifactId the artifactId of the required Module
-      * @return the created ModuleRequirement
-      */
-    public static ModuleRequirement create(
-            String requiredModuleArtifactId )
-    {
-        return new ModuleRequirement( null, requiredModuleArtifactId, null, false );
-    }
-
-    /**
-      * Factory method.
-      *
-      * @param requiredModuleGroupId the groupId of the required Module
-      * @param requiredModuleArtifactId the artifactId of the required Module
-      * @return the created ModuleRequirement
-      */
-    public static ModuleRequirement create(
-            String requiredModuleGroupId,
-            String requiredModuleArtifactId )
-    {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, null, false );
-    }
-
-    /**
-      * Factory method.
-      *
-      * @param requiredModuleGroupId the groupId of the required Module
-      * @param requiredModuleArtifactId the artifactId of the required Module
-      * @param requiredModuleVersion the version of the required Module
-      * @return the created ModuleRequirement
-      */
-    public static ModuleRequirement create(
-            String requiredModuleGroupId,
-            String requiredModuleArtifactId,
-            String requiredModuleVersion )
-    {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, false );
-    }
-
-    /**
-      * Factory method.
-      *
-      * @param requiredModuleGroupId the groupId of the required Module
-      * @param requiredModuleArtifactId the artifactId of the required Module
-      * @param requiredModuleVersion the version of the required Module, null if any
-      * @param isOptional if true, this ModuleRequirement is optional
-      * @return the created ModuleRequirement
-      */
-    public static ModuleRequirement create(
-            String  requiredModuleGroupId,
-            String  requiredModuleArtifactId,
-            String  requiredModuleVersion,
-            boolean isOptional )
-    {
-        return new ModuleRequirement( requiredModuleGroupId, requiredModuleArtifactId, requiredModuleVersion, isOptional );
-    }
 
     /**
       * Factory method using a String representation corresponding to toString().
@@ -112,11 +52,26 @@ public class ModuleRequirement
         String [] parts = s.split( ":" );
         switch( parts.length ) {
             case 1:
-                return new ModuleRequirement( null, parts[0], null, false );
+                return new ModuleRequirement(
+                        null,
+                        parts[0],
+                        null,
+                        false,
+                        null );
             case 2:
-                return new ModuleRequirement( parts[0].isEmpty() ? null : parts[0], parts[1], null, false );
+                return new ModuleRequirement(
+                        parts[0].isEmpty() ? null : parts[0],
+                        parts[1],
+                        null,
+                        false,
+                        null );
             case 3:
-                return new ModuleRequirement( parts[0].isEmpty() ? null : parts[0], parts[1], parts[2].isEmpty() ? null : parts[2], false );
+                return new ModuleRequirement(
+                        parts[0].isEmpty() ? null : parts[0],
+                        parts[1],
+                        parts[2].isEmpty() ? null : parts[2],
+                        false,
+                        null );
             default:
                 throw new ParseException( "Not a valid Module identifier: " + s, 0 );
         }
@@ -129,21 +84,29 @@ public class ModuleRequirement
       * @param requiredModuleArtifactId the artifactId of the required Module
       * @param requiredModuleVersion the version of the required Module, null if any
       * @param isOptional if true, this ModuleRequirement is optional
+      * @param requiredCapabilities names of the required ModuleCapabilities, may be empty
       */
     protected ModuleRequirement(
-            String  requiredModuleGroupId,
-            String  requiredModuleArtifactId,
-            String  requiredModuleVersion,
-            boolean isOptional )
+            String    requiredModuleGroupId,
+            String    requiredModuleArtifactId,
+            String    requiredModuleVersion,
+            boolean   isOptional,
+            String [] requiredCapabilities )
     {
         if( requiredModuleGroupId != null && !MAVEN_ID_REGEX.matcher( requiredModuleGroupId ).matches() ) {
             throw new IllegalArgumentException( "Required module groupId contains invalid characters: " + requiredModuleGroupId );
         }
-        if( requiredModuleArtifactId == null || requiredModuleArtifactId.isEmpty() ) {
-            throw new IllegalArgumentException( "Required module artifactId must not be null or an empty string" );
-        }
-        if( !MAVEN_ID_REGEX.matcher( requiredModuleArtifactId ).matches() ) {
-            throw new IllegalArgumentException( "Required module artifactId contains invalid characters: " + requiredModuleArtifactId );
+        if( requiredModuleArtifactId == null ) {
+            if( requiredCapabilities.length == 0 ) {
+                throw new IllegalArgumentException( "Must provide at least either a required module artifactId or required capabilities" );
+            }
+        } else {
+            if( requiredModuleArtifactId.isEmpty() ) {
+                throw new IllegalArgumentException( "Required module artifactId must not be null or an empty string" );
+            }
+            if( !MAVEN_ID_REGEX.matcher( requiredModuleArtifactId ).matches() ) {
+                throw new IllegalArgumentException( "Required module artifactId contains invalid characters: " + requiredModuleArtifactId );
+            }
         }
         if( requiredModuleVersion != null && requiredModuleVersion.isEmpty() ) {
             throw new IllegalArgumentException( "Required module version must not be an empty string" );
@@ -153,6 +116,8 @@ public class ModuleRequirement
         theIsOptional               = isOptional;
 
         parseAndSetMinMaxVersions( requiredModuleVersion );
+
+        theRequiredCapabilities = requiredCapabilities;
     }
 
     /**
@@ -197,21 +162,40 @@ public class ModuleRequirement
     }
 
     /**
-     * Determine whether a candidate ModuleMeta meets this ModuleRequirement.
+     * Determine the ModuleCapabilities provided by this Module.
+     *
+     * @return the ModuleCapabilities
+     */
+    public String [] getRequiredModuleCapabilities()
+    {
+        return theRequiredCapabilities;
+    }
+
+    /**
+     * Determine how well a candidate ModuleMeta meets this ModuleRequirement.
      *
      * @param candidate the candidate ModuleMeta
-     * @return 0: does not match: 1: matches perfectly, 2: new version
+     * @return 0: does not match: 1: perfect match, 2: new version
      */
-    public int matches(
+    public double matches(
             ModuleMeta candidate )
     {
-        if( theRequiredModuleGroupId != null && !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) ) {
-            return 0;
+        if( !matchesCoordinates( candidate )) {
+            return 0.0d;
         }
-        if( !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) ) {
-            return 0;
+
+        double score = 1.0d;
+        if( theRequiredCapabilities != null ) {
+            for( int i=0 ; i<theRequiredCapabilities.length ; ++i ) {
+                double match = candidate.meetsCapability( theRequiredCapabilities[i] );
+                if( match == 0.0d ) {
+                    return 0;
+                } else {
+                    score *= match;
+                }
+            }
         }
-        return matchesVersionRequirement( candidate.getModuleVersion() );
+        return score;
     }
 
     /**
@@ -229,7 +213,7 @@ public class ModuleRequirement
         int perfectCount = 0;
         int laterCount   = 0;
         for( int i=0 ; i<candidates.length ; ++i ) {
-            switch( matches( candidates[i] )) {
+            switch( matchesVersion( candidates[i] )) {
                 case 1:
                     perfect[perfectCount++] = candidates[i];
                     break;
@@ -246,13 +230,24 @@ public class ModuleRequirement
     }
 
     /**
-     * Determine whether the provided version String matches the version requirement
-     * in this ModuleRequirement.
+     * Determine whether the provide ModuleMeta meets the version requirements (but no other requirements).
+     *
+     * @param candidate the candidate ModuleMeta
+     * @return 0: does not match: 1: matches perfectly, 2: new version
+     */
+    public int matchesVersion(
+            ModuleMeta candidate )
+    {
+        return matchesVersion( candidate.getModuleVersion() );
+    }
+
+    /**
+     * Determine whether the provided version String meets the version requirement in this ModuleRequirement.
      *
      * @param version the version string
      * @return 0: does not match: 1: matches perfectly, 2: new version
      */
-    public int matchesVersionRequirement(
+    public int matchesVersion(
             String version )
     {
         // for speed purposes, get exact min version requirement out of the way
@@ -289,6 +284,34 @@ public class ModuleRequirement
         }
 
         return ret;
+    }
+
+    /**
+     * Determine whether the provided ModuleMeta matches the coordinate requirements,
+     * i.e. excluding the CapabilityRequirements.
+     *
+     * @param candidate the candidate ModuleMeta
+     * @return true or false
+     */
+    public boolean matchesCoordinates(
+            ModuleMeta candidate )
+    {
+        if(    theRequiredModuleGroupId != null
+            && !theRequiredModuleGroupId.equals( candidate.getModuleGroupId()) )
+        {
+            return false;
+        }
+
+        if(    theRequiredModuleArtifactId != null
+            && !theRequiredModuleArtifactId.equals( candidate.getModuleArtifactId()) )
+        {
+            return false;
+        }
+
+        if( matchesVersion( candidate.getModuleVersion() ) == 0 ) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -472,7 +495,7 @@ public class ModuleRequirement
             StringBuilder currentString = null; // once non-null, we know we are parsing a string
             long          currentLong   = -1;
 
-            almost.add( new ArrayList<Object>());
+            almost.add( new ArrayList<>());
             for( int j=0 ; j<major[i].length() ; ++j ) {
                 char c = major[i].charAt( j );
                 if( Character.isDigit( c )) {
@@ -658,6 +681,11 @@ public class ModuleRequirement
     protected boolean theIsOptional;
 
     /**
+     * The set of names of the required ModuleCapabilities.
+     */
+    protected String [] theRequiredCapabilities;
+
+    /**
      * The regex defining Maven version expressions.
      */
     public static Pattern MAVEN_VERSION_REGEX = Pattern.compile(
@@ -668,4 +696,132 @@ public class ModuleRequirement
      */
     public static Pattern MAVEN_ID_REGEX = Pattern.compile(
             "[-a-zA-Z0-9._]+");
+
+
+    /**
+     * A builder class for ModuleRequirement.
+     */
+    public static class Builder
+    {
+        /**
+         * Constructor.
+         */
+        public Builder()
+        {}
+
+        /**
+         * Set the groupId of the required Module.
+         *
+         * @param requiredModuleGroupId the groupId of the required Module
+         * @return self
+         */
+        public Builder requiredModuleGroupId(
+                String requiredModuleGroupId )
+        {
+            theRequiredModuleArtifactId = requiredModuleGroupId;
+            return this;
+        }
+
+        /**
+         * Set the artifactId of the required Module.
+         *
+         * @param requiredModuleArtifactId the artifactId of the required Module
+         * @return self
+         */
+        public Builder requiredModuleArtifactId(
+                String requiredModuleArtifactId )
+        {
+            theRequiredModuleArtifactId = requiredModuleArtifactId;
+            return this;
+        }
+
+        /**
+         * Set the version of the required Module.
+         *
+         * @param requiredModuleVersion the version of the required Module
+         * @return self
+         */
+        public Builder requiredModuleVersion(
+                String requiredModuleVersion )
+        {
+            theRequiredModuleVersion = requiredModuleVersion;
+            return this;
+        }
+
+        /**
+         * Set whether the required Module is optional.
+         *
+         * @param isOptional if true, the Module is optional
+         * @return self
+         */
+        public Builder isOptional(
+                boolean isOptional )
+        {
+            theIsOptional = isOptional;
+            return this;
+        }
+
+        /**
+         * Add a named required ModuleCapability.
+         *
+         * @param name the name of the required ModuleCapability
+         * @return self
+         */
+        public Builder requiredCapability(
+                String name )
+        {
+            if( theCapabilities == null ) {
+                theCapabilities = new HashSet<>();
+            }
+            theCapabilities.add( name );
+            return this;
+        }
+
+        /**
+         * Create the ModuleRequirement
+         *
+         * @return the ModuleRequirement
+         */
+        public ModuleRequirement build()
+        {
+            String [] capabilitiesArray;
+            if( theCapabilities == null ) {
+                capabilitiesArray = new String[0];
+            } else {
+                capabilitiesArray = new String[ theCapabilities.size() ];
+                theCapabilities.toArray( capabilitiesArray );
+            }
+            return new ModuleRequirement(
+                    theRequiredModuleGroupId,
+                    theRequiredModuleArtifactId,
+                    theRequiredModuleVersion,
+                    theIsOptional,
+                    capabilitiesArray );
+        }
+
+        /**
+         * The required Module groupId, if any.
+         */
+        protected String theRequiredModuleGroupId;
+
+        /**
+         * The required Module artifactId, if any.
+         */
+        protected String theRequiredModuleArtifactId;
+
+        /**
+         * The required Module version, if any.
+         */
+        protected String theRequiredModuleVersion;
+
+        /**
+         * The optionality of the Module.
+         */
+        protected boolean theIsOptional = false;
+
+        /**
+         * Set of named capabilities.
+         */
+        protected Set<String> theCapabilities;
+    }
 }

@@ -42,31 +42,34 @@ public class ModuleMeta
       * @param moduleJar JAR file provided by this Module
       * @param activationClassName name of the Module's activation/deactivation class, or null
       * @param runClassName name of the class contained in this Module that contains the Module's run method, or null
+      * @param moduleCapabilities set of ModuleCapabilities, or null
       */
     protected ModuleMeta(
-            String               moduleGroupId,
-            String               moduleArtifactId,
-            String               moduleVersion,
-            Map<String,String>   moduleUserNames,
-            Map<String,String>   moduleUserDescriptions,
-            long                 moduleBuildDate,
-            ModuleLicense        license,
-            ModuleRequirement [] runtimeModuleRequirements,
-            JarFile              moduleJar,
-            String               activationClassName,
-            String               runClassName )
+            String                       moduleGroupId,
+            String                       moduleArtifactId,
+            String                       moduleVersion,
+            Map<String,String>           moduleUserNames,
+            Map<String,String>           moduleUserDescriptions,
+            long                         moduleBuildDate,
+            ModuleLicense                license,
+            ModuleRequirement []         runtimeModuleRequirements,
+            JarFile                      moduleJar,
+            String                       activationClassName,
+            String                       runClassName,
+            Map<String,ModuleCapability> moduleCapabilities )
     {
-        theModuleGroupId               = moduleGroupId;
-        theModuleArtifactId            = moduleArtifactId;
-        theModuleVersion               = moduleVersion;
-        theModuleUserNames             = moduleUserNames;
-        theModuleUserDescriptions      = moduleUserDescriptions;
-        theModuleBuildDate             = moduleBuildDate;
-        theModuleLicense               = license;
-        theRuntimeModuleRequirements   = runtimeModuleRequirements;
-        theModuleJar                   = moduleJar;
-        theActivationClassName         = activationClassName;
-        theRunClassName                = runClassName;
+        theModuleGroupId             = moduleGroupId;
+        theModuleArtifactId          = moduleArtifactId;
+        theModuleVersion             = moduleVersion;
+        theModuleUserNames           = moduleUserNames;
+        theModuleUserDescriptions    = moduleUserDescriptions;
+        theModuleBuildDate           = moduleBuildDate;
+        theModuleLicense             = license;
+        theRuntimeModuleRequirements = runtimeModuleRequirements;
+        theModuleJar                 = moduleJar;
+        theActivationClassName       = activationClassName;
+        theRunClassName              = runClassName;
+        theModuleCapabilities        = moduleCapabilities;
 
         if( moduleJar == null ) {
             theResourceJarEntryPrefix = UNPACKED_RESOURCE_JAR_ENTRY_PREFIX;
@@ -275,6 +278,39 @@ public class ModuleMeta
     }
 
     /**
+     * Obtain the provided ModuleCapabilities, if any.
+     *
+     * @return the ModuleCapabilities
+     */
+    public final Map<String,ModuleCapability> getModuleCapabilities()
+    {
+        return theModuleCapabilities;
+    }
+
+    /**
+     * Determine how well this Module provides the named capability.
+     *
+     * @param candidateName name of the candidate module capability
+     * @return a score between 0.0 (does not match) and 1.0 (perfect match)
+     */
+    public double meetsCapability(
+            String candidateName )
+    {
+        if( theModuleCapabilities == null ) {
+            return 0.0d;
+        }
+        ModuleCapability found = theModuleCapabilities.get( candidateName );
+        if( found == null ) {
+            return 0.0d;
+        }
+        String matchQuality = found.getProperty( ModuleCapability.MATCH_QUALITY_PROPERTY );
+        if( matchQuality != null ) {
+            return Double.parseDouble( matchQuality );
+        }
+        return 1.0d;
+    }
+
+    /**
      * Two ModuleMetas are the same if they have the same name and version.
      *
      * @param other the object to test against
@@ -351,54 +387,54 @@ public class ModuleMeta
     /**
      * The groupId of the module
      */
-    protected String theModuleGroupId;
+    protected final String theModuleGroupId;
 
     /**
      * The artifactId of the module.
      */
-    protected String theModuleArtifactId;
+    protected final String theModuleArtifactId;
 
     /**
      * The version of the module.
      */
-    protected String theModuleVersion;
+    protected final String theModuleVersion;
 
     /**
      * The time when this Module was built.
      */
-    protected long theModuleBuildDate;
+    protected final long theModuleBuildDate;
 
     /**
      * The user-visible names for this Module, keyed by the locale.
      */
-    protected Map<String,String> theModuleUserNames;
+    protected final Map<String,String> theModuleUserNames;
 
     /**
      * The user-visible descriptions for this Module, keyed by the locale.
      */
-    protected Map<String,String> theModuleUserDescriptions;
+    protected final Map<String,String> theModuleUserDescriptions;
 
     /**
      * The requirements for other modules that this Module will have at run time.
      */
-    protected ModuleRequirement [] theRuntimeModuleRequirements;
+    protected final ModuleRequirement [] theRuntimeModuleRequirements;
 
     /**
      * The license of the Module.
      */
-    protected ModuleLicense theModuleLicense;
+    protected final ModuleLicense theModuleLicense;
 
     /**
      * The JAR that this Module provides.
      */
-    protected JarFile theModuleJar;
+    protected final JarFile theModuleJar;
 
     /**
      * The relative path below which resources, such as a class files,
      * are to be found. Must be suitable for prepending without further processing,
      * i.e. must end with slash unless at the root.
      */
-    protected String theResourceJarEntryPrefix;
+    protected final String theResourceJarEntryPrefix;
 
     /**
      * The resourceJarEntryPrefix for JAR files.
@@ -418,11 +454,16 @@ public class ModuleMeta
     /**
      * The name of the Module activation/deactivation class.
      */
-    protected String theActivationClassName;
+    protected final String theActivationClassName;
 
     /**
      * The name of the class in this Module which provides a method to
      * run this Module.
      */
-    protected String theRunClassName;
+    protected final String theRunClassName;
+
+    /**
+     * The capabilities of this Module, or null.
+     */
+    protected final Map<String,ModuleCapability> theModuleCapabilities;
 }

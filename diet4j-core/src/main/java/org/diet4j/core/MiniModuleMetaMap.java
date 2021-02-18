@@ -31,10 +31,10 @@ public class MiniModuleMetaMap
     {
         this( DEFAULT_SIZE );
     }
-    
+
     /**
      * Constructor with specified initial size.
-     * 
+     *
      * @param size the initial size
      */
     public MiniModuleMetaMap(
@@ -43,10 +43,10 @@ public class MiniModuleMetaMap
         theData  = new Object[size*2];
         theIndex = 0;
     }
-    
+
     /**
      * Add a key-value mapping to the map. Replace if exists already.
-     * 
+     *
      * @param key the key
      * @param value the value
      * @return the previous value, or null
@@ -69,13 +69,13 @@ public class MiniModuleMetaMap
         }
         theData[theIndex++] = key;
         theData[theIndex++] = value;
-        
+
         return null;
     }
-    
+
     /**
      * Obtain the value for a given key.
-     * 
+     *
      * @param key the key
      * @return the value, or null
      */
@@ -89,10 +89,24 @@ public class MiniModuleMetaMap
         }
         return null;
     }
-    
+
+    /**
+     * Obtain all keys in the map.
+     *
+     * @return all keys
+     */
+    public synchronized String [] allKeys()
+    {
+        String [] ret = new String[ theIndex/2 ];
+        for( int i=0 ; i<ret.length ; ++i ) {
+            ret[i] = (String) theData[i*2];
+        }
+        return ret;
+    }
+
     /**
      * Obtain all values in the map, regardless of key.
-     * 
+     *
      * @return all values
      */
     public synchronized ModuleMeta [] allValues()

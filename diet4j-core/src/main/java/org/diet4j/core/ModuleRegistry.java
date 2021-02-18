@@ -157,6 +157,7 @@ public abstract class ModuleRegistry
      *
      * @return String
      */
+    @Override
     public abstract String toString();
 
     /**

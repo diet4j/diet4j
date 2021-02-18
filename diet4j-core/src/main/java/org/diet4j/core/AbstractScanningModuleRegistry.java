@@ -87,29 +87,91 @@ public abstract class AbstractScanningModuleRegistry
     public ModuleMeta [] determineResolutionCandidates(
             ModuleRequirement req )
     {
-        MiniModuleMetaMap found1;
+        ModuleMeta [] ret;
+        String []     requiredCapabilities = req.getRequiredModuleCapabilities();
 
-        synchronized( RESOLVE_LOCK ) {
-            found1 = theMetas.get( req.getRequiredModuleArtifactId() );
-        }
-        if( found1 == null ) {
-            return new ModuleMeta[0];
-        }
+        if( req.getRequiredModuleArtifactId() == null ) {
+            // we are only searching by ModuleCapability
+            ArrayList<Object[]> temp = new ArrayList<>();
 
-        if( req.getRequiredModuleGroupId() != null ) {
-            // groupId was specified
-            ModuleMeta [] found2 = found1.get( req.getRequiredModuleGroupId() );
-            if( found2 == null ) {
-                return new ModuleMeta[0];
+            for( MiniModuleMetaMap currentMap : theMetas.values() ) {
+                for( String key : currentMap.allKeys() ) {
+                    // use the most recent version that works
+                    ModuleMeta [] metas = currentMap.get( key );
+                    for( ModuleMeta currentMeta : metas ) {
+                        double score = req.matches( currentMeta );
+                        if( score > 0.0d ) {
+                            temp.add( new Object[] { currentMeta, score } );
+                            break;
+                        }
+                    }
+                }
+
             }
-            return req.findVersionMatchesFrom( found2 );
+            temp.sort( (Object [] a, Object [] b) -> {
+                double almost = (double) b[1] - (double) a[1];
+                if( almost > 0 ) {
+                    return 1;
+                } else if( almost < 0 ) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            });
+
+            ret = new ModuleMeta[temp.size()];
+            for( int i=0 ; i<ret.length ; ++i ) {
+                ret[i] = (ModuleMeta) temp.get( i )[0];
+            }
 
         } else {
-            // no groupId was specified
-            ModuleMeta [] found2 = found1.allValues();
+            // by artifactId, and potentially capability below
 
-            return req.findVersionMatchesFrom( found2 );
+            MiniModuleMetaMap found1;
+
+            synchronized( RESOLVE_LOCK ) {
+                found1 = theMetas.get( req.getRequiredModuleArtifactId() );
+            }
+            if( found1 == null ) {
+                ret = new ModuleMeta[0];
+
+            } else if( req.getRequiredModuleGroupId() != null ) {
+                // groupId was specified
+                ModuleMeta [] found2 = found1.get( req.getRequiredModuleGroupId() );
+                if( found2 == null ) {
+                    ret = new ModuleMeta[0];
+                } else {
+                    ret = req.findVersionMatchesFrom( found2 );
+                }
+
+            } else {
+                // no groupId was specified
+                ModuleMeta [] found2 = found1.allValues();
+
+                ret = req.findVersionMatchesFrom( found2 );
+            }
+
+            if( ret.length > 0 && requiredCapabilities != null && requiredCapabilities.length > 0 ) {
+                // filter
+                ModuleMeta [] newRet = new ModuleMeta[ ret.length ];
+                int           count  = 0;
+
+                for( int i=0 ; i<ret.length ; ++i ) {
+                    boolean found = true;
+                    for( int j=0 ; j<requiredCapabilities.length ; ++j ) {
+                        if( ret[i].meetsCapability( requiredCapabilities[j] ) == 0.0d ) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if( found ) {
+                        newRet[count++] = ret[i];
+                    }
+                }
+                ret = newRet; // may be pointless but that's okay
+            }
         }
+        return ret;
     }
 
     /**
@@ -229,16 +291,17 @@ public abstract class AbstractScanningModuleRegistry
                     Iterator<JarEntry> iter = metaFiles.iterator();
                     while( iter.hasNext() ) {
                         JarEntry f = iter.next();
-                        String   n = f.getName();
 
-                        if( n.equals( "META-INF/maven/pom.xml")) {
-                            pomXmlEntry = f;
-
-                        } else if( n.equals( "META-INF/maven/pom.properties" )) {
-                            pomPropertiesEntry = f;
-
-                        } else if( n.equals( "META-INF/MANIFEST.MF")) {
-                            manifestEntry = f;
+                        switch( f.getName() ) {
+                            case "META-INF/maven/pom.xml":
+                                pomXmlEntry = f;
+                                break;
+                            case "META-INF/maven/pom.properties":
+                                pomPropertiesEntry = f;
+                                break;
+                            case "META-INF/MANIFEST.MF":
+                                manifestEntry = f;
+                                break;
                         }
                     }
 
@@ -605,7 +668,7 @@ public abstract class AbstractScanningModuleRegistry
                 String  dependencyGroupId    = (String)  runTimeRequirement[0];
                 String  dependencyArtifactId = (String)  runTimeRequirement[1];
                 String  dependencyVersion    = (String)  runTimeRequirement[2];
-                boolean isOptional           = (Boolean) runTimeRequirement[3];
+                Boolean isOptional           = (Boolean) runTimeRequirement[3];
 
                 if( dependencyGroupId != null ) {
                     dependencyGroupId = replaceProperties( pomProperties, dependencyGroupId );
@@ -618,11 +681,22 @@ public abstract class AbstractScanningModuleRegistry
                 }
 
                 try {
-                    runTime[count] = ModuleRequirement.create(
-                            dependencyGroupId,
-                            dependencyArtifactId,
-                            dependencyVersion,
-                            isOptional ); // this may use symbolic names for version and groupId
+                    ModuleRequirement.Builder reqBuilder = new ModuleRequirement.Builder();
+
+                    if( dependencyGroupId != null ) {
+                        reqBuilder.requiredModuleGroupId( dependencyGroupId );
+                    }
+                    if( dependencyArtifactId != null ) {
+                        reqBuilder.requiredModuleArtifactId( dependencyArtifactId );
+                    }
+                    if( dependencyVersion != null ) {
+                        reqBuilder.requiredModuleVersion( dependencyVersion );
+                    }
+                    if( isOptional != null ) {
+                        reqBuilder.isOptional( isOptional );
+                    }
+
+                    runTime[count] = reqBuilder.build();
 
                     ++count;
 
@@ -648,11 +722,18 @@ public abstract class AbstractScanningModuleRegistry
                         newRunTime[--count] = runTime[i];
                     }
                 }
+                runTime = newRunTime;
             }
 
             String activationClassName = pomProperties.get( ACTIVATION_CLASS_PROPERTY );
             if( activationClassName != null ) {
                 activationClassName = replaceProperties( pomProperties, activationClassName );
+            }
+
+            Map<String,ModuleCapability> moduleCapabilities = null;
+            String capabilitiesString = pomProperties.get( CAPABILITIES_PROPERTY );
+            if( capabilitiesString != null ) {
+                moduleCapabilities = parseCapabilitiesString( capabilitiesString );
             }
 
             ret = new ModuleMeta( // FIXME: extract more info from pom files
@@ -666,7 +747,8 @@ public abstract class AbstractScanningModuleRegistry
                     runTime,
                     jar,
                     activationClassName,
-                    runClassName );
+                    runClassName,
+                    moduleCapabilities );
         }
         return ret;
     }
@@ -729,11 +811,164 @@ public abstract class AbstractScanningModuleRegistry
             ModuleMeta meta )
     {
         for( Map.Entry<ModuleRequirement,ModuleSettings> e : theModuleSettings.entrySet() ) {
-            if( e.getKey().matches( meta ) == 1 ) {
+            if( e.getKey().matchesCoordinates( meta ) ) {
                 return e.getValue();
             }
         }
         return EMPTY;
+    }
+
+    /**
+     * Parse a capabilities String
+     *
+     * @param s the capabilities String
+     * @return Map of capabilities
+     */
+    protected static Map<String,ModuleCapability> parseCapabilitiesString(
+            String s )
+    {
+        // Syntax: cap1 ; cap2 ( arg1 = val1, arg2 = val2 ) ; cap3
+
+        HashMap<String,ModuleCapability> ret = null; // allocated as needed
+
+        for( String capString : s.split( ";" )) {
+            capString = capString.trim();
+
+            StringBuilder      capName    = new StringBuilder();
+            StringBuilder      propName   = null;
+            StringBuilder      propValue  = null;
+            Map<String,String> properties = new HashMap<>();
+
+            int section = 0;
+
+            loop:
+            for( int i=0 ; i<capString.length() ; ++i ) {
+                char c = capString.charAt( i );
+
+                switch( section ) {
+                    case 0: // name
+                        if( c == '(' ) {
+                            section = 2;
+                        } else if( Character.isWhitespace( c )) {
+                            section = 1;
+                        } else {
+                            capName.append( c );
+                        }
+                        break;
+
+                    case 1: // white after name
+                        if( c == '(' ) {
+                            section = 2;
+                        } else if( !Character.isWhitespace( c )) {
+                            break loop; // ignore the rest
+                        } // else nothing
+                        break;
+
+                    case 2: // white before arg name
+                        if( c == ')' ) {
+                            break loop; // ignore the rest
+                        } else if( c == ',' ) {
+                            // nothing
+                        } else if( !Character.isWhitespace( c )) {
+                            propName = new StringBuilder();
+                            propName.append( c );
+                            section  = 3;
+                        } // else nothing
+                        break;
+
+                    case 3: // arg name
+                        if( c == ')' ) {
+                            break loop; // ignore the rest
+                        } else if( c == ',' ) {
+                            if( propName.length() > 0 ) {
+                                properties.put( propName.toString(), null );
+                                propName = null;
+                            }
+                        } else if( c == '=' ) {
+                            section = 5;
+                        } else if( Character.isWhitespace( c )) {
+                            section = 4;
+                        } else {
+                            propName.append( c );
+                        }
+                        break;
+
+                    case 4: // white after arg name
+                        if( c == ')' ) {
+                            break loop; // ignore the rest
+                        } else if( c == ',' ) {
+                            if( propName.length() > 0 ) {
+                                properties.put( propName.toString(), null );
+                                propName = null;
+                            }
+                            section = 3;
+                        } else if( c == '=' ) {
+                            section = 5;
+                        } else if( !Character.isWhitespace( c )) {
+                            break loop; // ignore the rest
+                        } // else nothing
+                        break;
+
+                    case 5: // white before arg value
+                        if( c == ')' ) {
+                            break loop; // ignore the rest
+                        } else if( c == ',' ) {
+                            if( propName.length() > 0 ) {
+                                properties.put( propName.toString(), null );
+                                propName = null;
+                            }
+                            section = 3;
+                        } else if( !Character.isWhitespace( c )) {
+                            propValue = new StringBuilder();
+                            propValue.append( c );
+                            section = 6;
+                        } // else nothing
+                        break;
+
+                    case 6: // arg value
+                        if( c == ')' ) {
+                            break loop; // ignore the rest
+                        } else if( c == ',' ) {
+                            if( propName.length() > 0 ) {
+                                properties.put( propName.toString(), propValue != null ? propValue.toString() : null );
+                                propName  = null;
+                                propValue = null;
+                            }
+                            section = 3;
+                        } else if( Character.isWhitespace( c )) {
+                            section = 7;
+                        } else {
+                            propValue.append( c );
+                        }
+                        break;
+
+                    case 7: // white after arg value
+                        if( c == ')' ) {
+                            break loop; // ignore the rest
+                        } else if( c == ',' ) {
+                            if( propName.length() > 0 ) {
+                                properties.put( propName.toString(), propValue != null ? propValue.toString() : null );
+                                propName  = null;
+                                propValue = null;
+                            }
+                            section = 3;
+                        }
+                        break;
+                }
+            }
+            if( capName.length() > 0 ) {
+                String realName = capName.toString();
+
+                if( ret == null ) {
+                    ret = new HashMap<>();
+                }
+                ret.put( realName, new ModuleCapability( realName, properties ));
+            }
+        }
+
+
+
+        return ret;
     }
 
     /**
@@ -919,4 +1154,9 @@ public abstract class AbstractScanningModuleRegistry
      * in a Module JAR.
      */
     public static final String ACTIVATION_CLASS_PROPERTY = "diet4j.activationclass";
+
+    /**
+     * Name of the (optional) property in pom.xml that lists the Module's capabilities.
+     */
+    public static final String CAPABILITIES_PROPERTY = "diet4j.capabilities";
 }
