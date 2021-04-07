@@ -127,7 +127,6 @@ public class Diet4jDaemon
             }
 
 
-
             if( configProps.containsKey( "diet4j!directory" )) {
                 if( directories != null && directories.length > 0 ) {
                     fatal( "Specified both as argument and in config file: directory" );
@@ -342,15 +341,17 @@ public class Diet4jDaemon
         throws
             DaemonInitException
     {
-        // try to clean up modules already initialized
-        for( int i=theModuleMetas.length-1 ; i>=0 ; --i ) {
-            try {
-                if( theModules[i] != null ) {
-                    theModules[i].deactivateRecursively();
-                }
+        if( theModuleMetas != null ) {
+            // try to clean up modules already initialized
+            for( int i=theModuleMetas.length-1 ; i>=0 ; --i ) {
+                try {
+                    if( theModules[i] != null ) {
+                        theModules[i].deactivateRecursively();
+                    }
 
-            } catch( Throwable ex ) {
-                // ignore
+                } catch( Throwable ex ) {
+                    // ignore
+                }
             }
         }
 

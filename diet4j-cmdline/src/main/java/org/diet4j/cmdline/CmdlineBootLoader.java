@@ -110,27 +110,19 @@ public abstract class CmdlineBootLoader
             helpAndQuit();
         }
 
-        // split module names and arguments
-        int dashDash = remaining.length;
-        for( int i=0 ; i<remaining.length ; ++i ) {
-            if( "--".equals( remaining[i] )) {
-                dashDash = i;
-                break;
-            }
-        }
         String [] moduleNames;
-        if( dashDash > 0 ) {
-            moduleNames = new String[ dashDash ];
-            System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
+        // in case of command-line, we recognize only one to-be-activated root module,
+        // otherwise the invocation syntax becomes awkward
+        if( remaining.length >= 1 ) {
+            moduleNames = new String[] { remaining[0] };
         } else {
             moduleNames = null;
         }
-
-        if( dashDash >= remaining.length-1 ) {
-            theRunArguments = null;
+        if( remaining.length > 1 ) {
+            theRunArguments = new String[ remaining.length - 1 ];
+            System.arraycopy( remaining, 1, theRunArguments, 0 , theRunArguments.length );
         } else {
-            theRunArguments = new String[ remaining.length - dashDash - 1 ];
-            System.arraycopy( remaining, dashDash+1, theRunArguments, 0 , theRunArguments.length );
+            theRunArguments = null;
         }
 
         theRunClassName  = parameters.get( "runclass" );
