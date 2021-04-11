@@ -38,7 +38,9 @@ import org.diet4j.core.Module;
 import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
+import org.diet4j.core.ModuleResolutionCandidateNotUniqueException;
 import org.diet4j.core.ModuleSettings;
+import org.diet4j.core.NoModuleResolutionCandidateException;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
 import org.diet4j.core.Version;
 
@@ -278,8 +280,14 @@ public abstract class CmdlineBootLoader
                 try {
                     theModuleMetas[i] = theRegistry.determineSingleResolutionCandidate( theModuleRequirements[i] );
 
+                } catch( NoModuleResolutionCandidateException ex ) {
+                    fatal( ex.getMessage() );
+
+                } catch( ModuleResolutionCandidateNotUniqueException ex ) {
+                    fatal( ex.getMessage() );
+
                 } catch( Throwable ex ) {
-                    fatal( "Cannot uniquely find module " + theModuleRequirements[i] + " in registry " + theRegistry );
+                    fatal( "Failed to resolve module " + theModuleRequirements[i] + " in registry " + theRegistry, ex );
                 }
             }
 
