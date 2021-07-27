@@ -1,19 +1,16 @@
 pkgname=$(basename $(pwd))
-pkgver=0.22
+pkgver=0.23
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')
-url="http://jdiet.org/"
+url="http://diet4j.org/"
 license=('Apache')
 makedepends=('maven' 'jdk11-openjdk' )
 depends=('java-runtime')
 optdepends=('java-jsvc')
 _groupId='org.diet4j'
-
-m2repo=${M2REPOSITORY:-${HOME}/.m2/repository}
-if [[ ! -z "${GRADLE_M2_HOME}" ]] ; then
-    m2repo=${GRADLE_M2_HOME}/repository
-fi
+options=('!strip')
+_m2repo=${GRADLE_M2_HOME:-${HOME}/.m2/repository}
 
 prepare() {
     # Set pom.xml versions correctly; depends on XML-comment-based markup in pom.xml files
@@ -27,6 +24,11 @@ prepare() {
 
 build() {
     cd ${startdir}
+
+    if [[ "${GRADLE_M2_HOME}" != '' ]]; then
+        export M2_HOME=${_m2repo}
+    fi
+
     mvn package install ${MVN_OPTS}
 }
 
@@ -38,7 +40,7 @@ package() {
     installOne 'diet4j-jsvc'
     installOne 'diet4j-tomcat'
     installOne 'diet4j-status'
-    install -m644 -D ${m2repo}/${_groupId//.//}/diet4j/${pkgver}/diet4j-${pkgver}.pom -t ${pkgdir}/usr/lib/java/org/diet4j/diet4j/${pkgver}/
+    install -m644 -D ${_m2repo}/${_groupId//.//}/diet4j/${pkgver}/diet4j-${pkgver}.pom -t ${pkgdir}/usr/lib/java/org/diet4j/diet4j/${pkgver}/
 
     # Command-line
     install -m755 -D ${startdir}/diet4j-cmdline/bin/diet4j ${pkgdir}/usr/bin/diet4j
@@ -62,6 +64,6 @@ package() {
 
 installOne() {
     local name=$1
-    install -m644 -D ${m2repo}/${_groupId//.//}/${name}/${pkgver}/${name}-${pkgver}.{jar,pom} -t ${pkgdir}/usr/lib/java/org/diet4j/${name}/${pkgver}/
+    install -m644 -D ${_m2repo}/${_groupId//.//}/${name}/${pkgver}/${name}-${pkgver}.{jar,pom} -t ${pkgdir}/usr/lib/java/org/diet4j/${name}/${pkgver}/
 }
 
