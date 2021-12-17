@@ -1,5 +1,5 @@
 pkgname=$(basename $(pwd))
-pkgver=0.23
+pkgver=0.24
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')
@@ -51,7 +51,7 @@ package() {
     ln -s ../${pkgver}/diet4j-jsvc-${pkgver}.jar ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current/diet4j-jsvc-current.jar
 
     # Settings
-    mkdir -p ${pkgdir}/etc/diet4j
+    install -m644 -D ${startdir}/diet4j-cmdline/etc/*.properties -t ${pkgdir}/etc/diet4j/
 
     # Tomcat
     mkdir -p ${pkgdir}/usr/share/java/tomcat8
@@ -66,4 +66,3 @@ installOne() {
     local name=$1
     install -m644 -D ${_m2repo}/${_groupId//.//}/${name}/${pkgver}/${name}-${pkgver}.{jar,pom} -t ${pkgdir}/usr/lib/java/org/diet4j/${name}/${pkgver}/
 }
-

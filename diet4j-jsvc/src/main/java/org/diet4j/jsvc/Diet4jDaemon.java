@@ -24,13 +24,17 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.LogManager;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.apache.commons.daemon.DaemonInitException;
+import org.diet4j.cmdline.CmdlineParameter;
 import org.diet4j.cmdline.CmdlineParameters;
 import org.diet4j.core.Module;
 import org.diet4j.core.ModuleActivationException;
@@ -59,40 +63,94 @@ public class Diet4jDaemon
             DaemonInitException
     {
         CmdlineParameters parameters = new CmdlineParameters(
-            new CmdlineParameters.Parameter( "directory", 1, true ),
-            new CmdlineParameters.Parameter( "runclass",  1 ),
-            new CmdlineParameters.Parameter( "runmethod", 1 ),
-            new CmdlineParameters.Parameter( "config",    1 )
+            new CmdlineParameter.Value( "directory",    true ),
+            new CmdlineParameter.Value( "directories",  false ),
+            new CmdlineParameter.Value( "runclass",     false ),
+            new CmdlineParameter.Value( "runmethod",    false ),
+            new CmdlineParameter.Value( "config",       false ),
+            new CmdlineParameter.Flag(  "verbose",      true ),
+            new CmdlineParameter.Value( "logConfigDir", true ),
+            new CmdlineParameter.Value( "logConfig",    true )
         );
 
         String [] remaining = parameters.parse( dc.getArguments() );
 
-        // split module names and arguments
-        int dashDash = remaining.length;
-        for( int i=0 ; i<remaining.length ; ++i ) {
-            if( "--".equals( remaining[i] )) {
-                dashDash = i;
-                break;
+        // logging
+
+        List<String> logConfigDirs = parameters.getManyValued(   "logConfigDir" );
+        String       logConfigFile = parameters.getSingleValued( "logConfig" );
+        int          verbosity     = parameters.getFlagCount(    "verbose" );
+
+        if( logConfigFile != null ) {
+            if( verbosity > 0 ) {
+                fatal( "Specify --verbose or --logConfig, not both" );
+            }
+            if( !logConfigDirs.isEmpty() ) {
+                fatal( "specify --logConfig or --logConfigDir, not both" );
+            }
+        } else {
+            if( logConfigDirs.isEmpty() ) {
+                logConfigDirs.add( "/etc/diet4j" );
+            }
+
+            String localLogConfigName;
+            if( verbosity > 0 ) {
+                localLogConfigName = String.format( "log-default-v%d-java.properties", verbosity );
+            } else {
+                localLogConfigName = "log-default-java.properties";
+            }
+
+            for( String logConfigDir : logConfigDirs ) {
+                String candidate = logConfigDir + "/" + localLogConfigName;
+                if( new File( candidate ).canRead() ) {
+                    logConfigFile = candidate;
+                }
             }
         }
-        String [] moduleNames = new String[ dashDash ];
-        System.arraycopy( remaining, 0, moduleNames, 0, dashDash );
+        if( logConfigFile != null ) {
+            try {
+                LogManager.getLogManager().readConfiguration( new FileInputStream( logConfigFile ));
 
-        if( dashDash >= remaining.length-1 ) {
-            theRunArguments = new String[0];
-        } else {
-            theRunArguments = new String[ remaining.length - dashDash - 1 ];
-            System.arraycopy( remaining, dashDash+1, theRunArguments, 0 , theRunArguments.length );
+            } catch( IOException ex ) {
+                throw new DaemonInitException( "Failed to read log configuration file:", ex );
+            }
         }
 
-        theRunClassName  = parameters.get( "run" );
-        theRunMethodName = parameters.get( "method" );
+        // modules
 
-        String [] directories = parameters.getMany( "directory" );
+        String [] moduleNames;
+        // in case of command-line, we recognize only one to-be-activated root module,
+        // otherwise the invocation syntax becomes awkward
+        if( remaining.length >= 1 ) {
+            moduleNames = new String[] { remaining[0] };
+        } else {
+            moduleNames = null;
+        }
+        if( remaining.length > 1 ) {
+            theRunArguments = new String[ remaining.length - 1 ];
+            System.arraycopy( remaining, 1, theRunArguments, 0 , theRunArguments.length );
+        } else {
+            theRunArguments = null;
+        }
+
+        theRunClassName  = parameters.getSingleValued( "runclass" );
+        theRunMethodName = parameters.getSingleValued( "runmethod" );
+
+        ArrayList<String> directories = new ArrayList<>();
+        if( parameters.get( "directory" ) != null ) {
+            for( String dir : parameters.getManyValued( "directory" )) {
+                directories.add( dir );
+            }
+        }
+        if( parameters.get( "directories" ) != null ) {
+            for( String dir : parameters.getSingleValued( "directories" ).split( "[:;]+" )) {
+                directories.add( dir );
+            }
+        }
 
         Map<ModuleRequirement,Map<String,String>> rawModuleSettings = new HashMap<>();
 
-        String config = parameters.get( "config" );
+        String config = parameters.getSingleValued( "config" );
         if( config != null ) {
             Properties configProps = new Properties();
 
@@ -128,10 +186,12 @@ public class Diet4jDaemon
 
 
             if( configProps.containsKey( "diet4j!directory" )) {
-                if( directories != null && directories.length > 0 ) {
+                if( !directories.isEmpty() ) {
                     fatal( "Specified both as argument and in config file: directory" );
                 }
-                directories = configProps.getProperty( "diet4j!directory" ).split( "[,\\s]+" );
+                for( String dir : configProps.getProperty( "diet4j!directories" ).split( "[:;]+" )) {
+                    directories.add( dir );
+                }
                 // FIXME: no spaces or commas in file names
             }
             if( configProps.containsKey( "diet4j!module" )) {

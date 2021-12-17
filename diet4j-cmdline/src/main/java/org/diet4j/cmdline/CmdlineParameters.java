@@ -16,9 +16,11 @@
 // specific language governing permissions and limitations
 // under the License.
 //
+
 package org.diet4j.cmdline;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,9 +34,11 @@ public class CmdlineParameters
      * @param pars the allowed parameters
      */
     public CmdlineParameters(
-            Parameter ... pars )
+            CmdlineParameter ... pars )
     {
-        thePars = pars;
+        for( CmdlineParameter par : pars ) {
+            thePars.put( par.getName(), par );
+        }
     }
 
     /**
@@ -46,55 +50,23 @@ public class CmdlineParameters
     public String [] parse(
             String [] args )
     {
-        if( theValues != null ) {
-            throw new IllegalStateException( "Parsed already" );
-        }
-        theValues = new HashMap<>();
-
         String [] ret = null;
 
         int i=0;
         while( i<args.length ) {
-            if( args[i].startsWith( "-" ) && ! "--".equals( args[i])) {
+            if( args[i].startsWith( "-" )) {
                 args[i] = args[i].substring( 1 );
                 if( args[i].startsWith( "-" )) {
                     args[i] = args[i].substring( 1 );
                 }
 
-                Parameter foundPar = null;
-                for( int p = 0 ; p<thePars.length ; ++p ) {
-                    if( args[i].equals( thePars[p].theName )) {
-                        foundPar = thePars[p];
-                        break;
-                    }
-                }
+                CmdlineParameter foundPar = thePars.get( args[i] );
                 if( foundPar == null ) {
                     CmdlineBootLoader.fatal( "Unknown parameter: " + args[i] );
-
-                } else if( i + foundPar.theNumValues > args.length ) {
-                    CmdlineBootLoader.fatal( "Parameter " + args[i] + " requires " + foundPar.theNumValues + " values." );
-
-                } else {
-                    if( theValues.containsKey( foundPar.theName )) {
-                        if( foundPar.theMayRepeat ) {
-                            String [] values = theValues.get( foundPar.theName );
-                            String [] values2 = new String[ values.length + foundPar.theNumValues ];
-                            System.arraycopy( values, 0, values2, 0, values.length );
-                            System.arraycopy( args, i+1, values2, values.length, foundPar.theNumValues );
-                            theValues.put( foundPar.theName, values2 );
-
-                        } else {
-                            CmdlineBootLoader.fatal( "Parameter must not repeat: " + args[i] );
-                        }
-
-                    } else {
-                        String [] values = new String[ foundPar.theNumValues ];
-                        System.arraycopy( args, i+1, values, 0, foundPar.theNumValues );
-                        theValues.put( foundPar.theName, values );
-                    }
-                    ++i;                        // the name of the parameter
-                    i += foundPar.theNumValues; // the values of the parameter
                 }
+
+                int taken = foundPar.parseValues( args, ++i ); // may fatal out
+                i += taken;
 
             } else {
                 // we are done
@@ -111,93 +83,79 @@ public class CmdlineParameters
     }
 
     /**
-     * Has this named parameter been given?
+     * Has this named CmdlineParameter been given?
      *
-     * @param name name of the parameter
+     * @param name name of the CmdlineParameter
      * @return true or false
      */
-    public boolean containsKey(
+    public boolean hasValueSetForKey(
             String name )
     {
-        return theValues.containsKey( name );
-    }
-
-    /**
-     * Obtain the value of a single-valued parameter.
-     *
-     * @param name name of the parameter
-     * @return the provided value, or null
-     */
-    public String get(
-            String name )
-    {
-        String [] found = theValues.get( name );
-        if( found == null ) {
-            return null;
-        } else {
-            return found[0];
+        CmdlineParameter par = thePars.get( name );
+        if( par == null ) {
+            return false;
         }
+        return par.hasValueSet();
     }
 
     /**
-     * Obtain the value(s) of a multi-valued parameter
+     * Obtain a CmdlineParameter
      *
-     * @param name name of the parameter
-     * @return the provided value(s), or null
+     * @param name name of the CmdlineParameter
+     * @return the CmdlineParameter
      */
-    public String [] getMany(
+    public CmdlineParameter get(
             String name )
     {
-        return theValues.get( name );
+        return thePars.get( name );
+    }
+
+    /**
+     * Obtain the value of flag parameter.
+     */
+    public int getFlagCount(
+            String name )
+    {
+        CmdlineParameter par = thePars.get( name );
+
+        int ret = ((CmdlineParameter.Flag)par).getCount();
+        return ret;
+    }
+
+    /**
+     * Obtain a single-valued parameter value.
+     */
+    public String getSingleValued(
+            String name )
+    {
+        CmdlineParameter par = thePars.get( name );
+
+        List<String> values = ((CmdlineParameter.Value)par).getValues();
+        if( values.isEmpty() ) {
+            return null;
+        }
+        if( values.size() == 1 ) {
+            return values.get( 0 );
+        }
+
+        CmdlineBootLoader.fatal( "Internal error" );
+        return null;
+    }
+
+    /**
+     * Obtain a multiple-valued parameter value.
+     */
+    public List<String> getManyValued(
+            String name )
+    {
+        CmdlineParameter par = thePars.get( name );
+
+        List<String> values = ((CmdlineParameter.Value)par).getValues();
+        return values;
     }
 
     /**
      * The defined parameters.
      */
-    protected Parameter [] thePars;
-
-    /**
-     * The found values.
-     */
-    protected Map<String,String[]> theValues = null;
-
-    /**
-     * Defines one allowed parameter.
-     */
-    public static class Parameter
-    {
-        /**
-         * Constructor.
-         *
-         * @param name name of the parameter
-         * @param numValues the number of values for the parameter, e.g. 0 or 1
-         */
-        public Parameter(
-                String name,
-                int    numValues )
-        {
-            this( name, numValues, false );
-        }
-
-        /**
-         * Constructor.
-         *
-         * @param name name of the parameter
-         * @param numValues the number of values for the parameter, e.g. 0 or 1
-         * @param mayRepeat if true, this parameter may be provided more than once in the arguments
-         */
-        public Parameter(
-                String  name,
-                int     numValues,
-                boolean mayRepeat )
-        {
-            theName      = name;
-            theNumValues = numValues;
-            theMayRepeat = mayRepeat;
-        }
-
-        protected String  theName;
-        protected int     theNumValues;
-        protected boolean theMayRepeat;
-    }
+    protected Map<String,CmdlineParameter> thePars = new HashMap<>();
 }
