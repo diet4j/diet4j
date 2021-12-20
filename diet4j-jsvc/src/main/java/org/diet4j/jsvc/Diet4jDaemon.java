@@ -137,13 +137,13 @@ public class Diet4jDaemon
         theRunMethodName = parameters.getSingleValued( "runmethod" );
 
         ArrayList<String> directories = new ArrayList<>();
-        if( parameters.get( "directory" ) != null ) {
+        if( parameters.hasValueSetForKey( "directory" )) {
             for( String dir : parameters.getManyValued( "directory" )) {
                 directories.add( dir );
             }
         }
-        if( parameters.get( "directories" ) != null ) {
-            for( String dir : parameters.getSingleValued( "directories" ).split( "[:;]+" )) {
+        if( parameters.hasValueSetForKey( "directories" )) {
+            for( String dir : parameters.getSingleValued( "directories" ).split( "[:; ]+" )) {
                 directories.add( dir );
             }
         }
@@ -187,12 +187,17 @@ public class Diet4jDaemon
 
             if( configProps.containsKey( "diet4j!directory" )) {
                 if( !directories.isEmpty() ) {
-                    fatal( "Specified both as argument and in config file: directory" );
+                    fatal( "Specified both as argument and in config file: directory or directories" );
                 }
-                for( String dir : configProps.getProperty( "diet4j!directories" ).split( "[:;]+" )) {
+                directories.add( configProps.getProperty( "diet4j!directory" ) );
+            }
+            if( configProps.containsKey( "diet4j!directories" )) {
+                if( !directories.isEmpty() ) {
+                    fatal( "Specified both as argument and in config file: directory or directories" );
+                }
+                for( String dir : configProps.getProperty( "diet4j!directories" ).split( "[:; ]+" )) {
                     directories.add( dir );
                 }
-                // FIXME: no spaces or commas in file names
             }
             if( configProps.containsKey( "diet4j!module" )) {
                 if( moduleNames != null && moduleNames.length > 0 ) {
