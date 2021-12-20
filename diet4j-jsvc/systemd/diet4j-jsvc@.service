@@ -32,6 +32,7 @@ ExecStartPre=/bin/touch ${PIDFILE}
 ExecStartPre=/bin/chown ${JSVC_USER} /var/tmp/diet4j-jsvc-%i ${PIDFILE}
 
 ExecStart=/usr/bin/jsvc \
+        $JAVA_OPTS \
         $JSVC_OPTS \
         $DEBUG_OPTS \
         -cp /usr/lib/java/org/diet4j/diet4j-jsvc/${DIET4J_VERSION}/diet4j-jsvc-${DIET4J_VERSION}.jar \
