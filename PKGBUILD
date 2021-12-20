@@ -17,9 +17,9 @@ prepare() {
     # This is a great big hack, but does the job
     find ${startdir} -path ${startdir}/pkg -prune -o -name pom.xml -exec perl -pi -e "s/(?<=\<\!-- PKGVER -->)(\d+(\.\d+)+)(?=\<\!-- \/PKGVER -->)/${pkgver}/g" {} \;
 
-    # Also do this for run files
-    perl -pi -e "s/^VERSION=.*$/VERSION=\\\${DIET4J_VERSION:-${pkgver}}/" ${startdir}/diet4j-cmdline/bin/diet4j
-    perl -pi -e "s/^Environment='DIET4J_VERSION=.*\$/Environment=\'DIET4J_VERSION=${pkgver}'/" ${startdir}/diet4j-jsvc/systemd/diet4j-jsvc@.service
+    # Also do this for config files
+    perl -pi -e "s/^DIET4J_VERSION=.*$/DIET4J_VERSION=${pkgver}/" ${startdir}/diet4j-cmdline/etc/diet4j-defaults.conf
+    perl -pi -e "s/^DIET4J_VERSION=.*$/DIET4J_VERSION=${pkgver}/" ${startdir}/diet4j-jsvc/etc/diet4j-jsvc-defaults.conf
 }
 
 build() {
@@ -38,7 +38,6 @@ package() {
     installOne 'diet4j-core'
     installOne 'diet4j-inclasspath'
     installOne 'diet4j-jsvc'
-    installOne 'diet4j-tomcat'
     installOne 'diet4j-status'
     install -m644 -D ${_m2repo}/${_groupId//.//}/diet4j/${pkgver}/diet4j-${pkgver}.pom -t ${pkgdir}/usr/lib/java/org/diet4j/diet4j/${pkgver}/
 
@@ -51,11 +50,8 @@ package() {
     ln -s ../${pkgver}/diet4j-jsvc-${pkgver}.jar ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current/diet4j-jsvc-current.jar
 
     # Settings
-    install -m644 -D ${startdir}/diet4j-cmdline/etc/*.properties -t ${pkgdir}/etc/diet4j/
-
-    # Tomcat
-    mkdir -p ${pkgdir}/usr/share/java/tomcat8
-    ln -s /usr/lib/java/org/diet4j/diet4j-tomcat/${pkgver}/diet4j-tomcat-${pkgver}.jar ${pkgdir}/usr/share/java/tomcat8/diet4j-tomcat-${pkgver}.jar
+    install -m644 -D ${startdir}/diet4j-cmdline/etc/*.{conf,properties} -t ${pkgdir}/etc/diet4j/
+    install -m644 -D ${startdir}/diet4j-jsvc/etc/*.conf -t ${pkgdir}/etc/diet4j/
 
     # Systemd
     mkdir -p ${pkgdir}/usr/lib/systemd/system

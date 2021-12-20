@@ -18,7 +18,6 @@ automatically assemble them at run-time without needing gigantic JARs.</descript
         <module>diet4j-jsvc</module>
         <module>diet4j-junit</module>
         <module>diet4j-status</module>
-        <module>diet4j-tomcat</module>
     </modules>
 
     <build>
