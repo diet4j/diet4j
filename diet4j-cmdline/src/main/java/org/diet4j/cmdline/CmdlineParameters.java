@@ -37,7 +37,14 @@ public class CmdlineParameters
             CmdlineParameter ... pars )
     {
         for( CmdlineParameter par : pars ) {
-            thePars.put( par.getName(), par );
+            if( thePars.put( par.getName(), par ) != null ) {
+                CmdlineBootLoader.fatal( "Programming error: have parameter with name already: " + par.getName() );
+            }
+            if( par.getShortName() != null ) {
+                if( thePars.put( par.getShortName(), par ) != null ) {
+                    CmdlineBootLoader.fatal( "Programming error: have parameter with name already: " + par.getShortName() );
+                }
+            }
         }
     }
 

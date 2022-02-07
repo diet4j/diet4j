@@ -40,6 +40,7 @@ import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
 import org.diet4j.core.ModuleResolutionCandidateNotUniqueException;
+import org.diet4j.core.ModuleRunException;
 import org.diet4j.core.ModuleSettings;
 import org.diet4j.core.NoModuleResolutionCandidateException;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
@@ -99,15 +100,15 @@ public abstract class CmdlineBootLoader
             IOException
     {
         CmdlineParameters parameters = new CmdlineParameters(
-            new CmdlineParameter.Flag(  "help",         false ),
-            new CmdlineParameter.Value( "directory",    true ),
-            new CmdlineParameter.Value( "directories",  false ),
-            new CmdlineParameter.Value( "runclass",     false ),
-            new CmdlineParameter.Value( "runmethod",    false ),
-            new CmdlineParameter.Value( "config",       false ),
-            new CmdlineParameter.Flag(  "verbose",      true ),
-            new CmdlineParameter.Value( "logConfigDir", true ),
-            new CmdlineParameter.Value( "logConfig",    true )
+            new CmdlineParameter.Flag(  "help",         "h",    false ),
+            new CmdlineParameter.Value( "directory",    "dir",  true ),
+            new CmdlineParameter.Value( "directories",  "dirs", false ),
+            new CmdlineParameter.Value( "runclass",     null,   false ),
+            new CmdlineParameter.Value( "runmethod",    null,   false ),
+            new CmdlineParameter.Value( "config",       "c",    false ),
+            new CmdlineParameter.Flag(  "verbose",      "v",    true ),
+            new CmdlineParameter.Value( "logConfigDir", null,   true ),
+            new CmdlineParameter.Value( "logConfig",    null,   true )
         );
 
         String [] remaining = parameters.parse( args );
@@ -127,7 +128,7 @@ public abstract class CmdlineBootLoader
         if( logConfigFile != null ) {
             if( verbosity > 0 ) {
                 fatal( "Specify --verbose or --logConfig, not both" );
-            }
+        }
             if( !logConfigDirs.isEmpty() ) {
                 fatal( "specify --logConfig or --logConfigDir, not both" );
             }
@@ -355,9 +356,28 @@ public abstract class CmdlineBootLoader
                     }
 
                 } catch( Throwable ex ) {
-                    log.log( Level.SEVERE, "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
-                    ret = 1;
 
+                    Throwable current = ex;
+
+                    while( true ) {
+                        String message = current.getMessage();
+                        if( message == null ) {
+                            message = current.getLocalizedMessage();
+                        }
+                        if( message == null ) {
+                            message = current.getClass().getName();
+                        }
+                        log.log( Level.SEVERE, message, current );
+
+                        if( current.getCause() == null || current.getCause() == current ) {
+                            break;
+                        }
+                        current = current.getCause();
+                    }
+
+                    log.log( Level.SEVERE, "Run of module " + theModules[0].getModuleMeta() + " failed", ex );
+
+                    ret = 1;
                 }
             }
 

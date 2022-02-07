@@ -30,23 +30,38 @@ public abstract class CmdlineParameter
     /**
      * Constructor.
      *
-     * @param name name of the parameter
+     * @param name name of the parameter (e.g. "verbose")
+     * @param shortName the short name of the parameter, if it has one (e.g. "v")
      * @param mayRepeat if true, this parameter may be provided more than once in the arguments
      */
     public CmdlineParameter(
             String  name,
+            String  shortName,
             boolean mayRepeat )
     {
         theName      = name;
+        theShortName = shortName;
         theMayRepeat = mayRepeat;
     }
 
     /**
      * Obtain the name.
+     *
+     * @return the name
      */
     public String getName()
     {
         return theName;
+    }
+
+    /**
+     * Obtain the short name.
+     *
+     * @return the short name
+     */
+    public String getShortName()
+    {
+        return theShortName;
     }
 
     /**
@@ -66,33 +81,8 @@ public abstract class CmdlineParameter
     public abstract boolean hasValueSet();
 
     protected final String theName;
+    protected final String theShortName;
     protected boolean theMayRepeat;
-
-
-//                } else if( i + foundPar.theNumValues > args.length ) {
-//                    CmdlineBootLoader.fatal( "Value " + args[i] + " requires " + foundPar.theNumValues + " values." );
-//
-//                } else {
-//                    if( theCount.containsKey( foundPar.theName )) {
-//                        if( foundPar.theMayRepeat ) {
-//                            String [] values = theCount.get( foundPar.theName );
-//                            String [] values2 = new String[ values.length + foundPar.theNumValues ];
-//                            System.arraycopy( values, 0, values2, 0, values.length );
-//                            System.arraycopy( args, i+1, values2, values.length, foundPar.theNumValues );
-//                            theCount.put( foundPar.theName, values2 );
-//
-//                        } else {
-//                            CmdlineBootLoader.fatal( "Value must not repeat: " + args[i] );
-//                        }
-//
-//                    } else {
-//                        String [] values = new String[ foundPar.theNumValues ];
-//                        System.arraycopy( args, i+1, values, 0, foundPar.theNumValues );
-//                        theCount.put( foundPar.theName, values );
-//                    }
-//                    ++i;                        // the name of the parameter
-//                    i += foundPar.theNumValues; // the values of the parameter
-//                }
 
     /**
      * A parameter that takes no values but may be repeated.
@@ -105,13 +95,15 @@ public abstract class CmdlineParameter
          * Constructor.
          *
          * @param name name of the parameter
+         * @param shortName short name of the parameter, if any
          * @param mayRepeat if true, this parameter may be provided more than once in the arguments
          */
         public Flag(
                 String  name,
+                String  shortName,
                 boolean mayRepeat )
         {
-            super( name, mayRepeat );
+            super( name, shortName, mayRepeat );
         }
 
         /**
@@ -164,13 +156,15 @@ public abstract class CmdlineParameter
          * Constructor.
          *
          * @param name name of the parameter
+         * @param shortName short name of the parameter, if any
          * @param mayRepeat if true, this parameter may be provided more than once in the arguments
          */
         public Value(
                 String  name,
+                String  shortName,
                 boolean mayRepeat )
         {
-            super( name, mayRepeat );
+            super( name, shortName, mayRepeat );
         }
 
         /**

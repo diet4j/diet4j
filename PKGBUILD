@@ -1,5 +1,5 @@
 pkgname=$(basename $(pwd))
-pkgver=0.24
+pkgver=0.25
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')

@@ -63,14 +63,14 @@ public class Diet4jDaemon
             DaemonInitException
     {
         CmdlineParameters parameters = new CmdlineParameters(
-            new CmdlineParameter.Value( "directory",    true ),
-            new CmdlineParameter.Value( "directories",  false ),
-            new CmdlineParameter.Value( "runclass",     false ),
-            new CmdlineParameter.Value( "runmethod",    false ),
-            new CmdlineParameter.Value( "config",       false ),
-            new CmdlineParameter.Flag(  "verbose",      true ),
-            new CmdlineParameter.Value( "logConfigDir", true ),
-            new CmdlineParameter.Value( "logConfig",    true )
+            new CmdlineParameter.Value( "directory",    "dir",  true ),
+            new CmdlineParameter.Value( "directories",  "dirs", false ),
+            new CmdlineParameter.Value( "runclass",     null,   false ),
+            new CmdlineParameter.Value( "runmethod",    null,   false ),
+            new CmdlineParameter.Value( "config",       "c",    false ),
+            new CmdlineParameter.Flag(  "verbose",      "v",    true ),
+            new CmdlineParameter.Value( "logConfigDir", null,   true ),
+            new CmdlineParameter.Value( "logConfig",    null,   true )
         );
 
         String [] remaining = parameters.parse( dc.getArguments() );
