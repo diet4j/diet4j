@@ -83,15 +83,18 @@ public class DefaultModuleActivator
             return null;
         }
 
+        Class<?> activationClass; // pull out here for easier debugging
+        Method   activationMethod;
+
         try {
             log.log( Level.FINER, "moduleActivateStarted: {0}", theModule );
 
             // FIXME? I think this does not distinguish between ClassNotFoundExceptions that are triggered
             // by not finding the activationClass, and those triggered by those not finding a class while
             // running it.
-            Class<?> activationClass = Class.forName( activationClassName, true, theModule.getClassLoader() );
+            activationClass = Class.forName( activationClassName, true, theModule.getClassLoader() );
 
-            Method activationMethod = activationClass.getMethod(
+            activationMethod = activationClass.getMethod(
                     ACTIVATION_METHOD_NAME,
                     new Class[] { Module.class } );
 

@@ -1,5 +1,5 @@
 pkgname=$(basename $(pwd))
-pkgver=0.25
+pkgver=0.26
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')
@@ -8,6 +8,11 @@ license=('Apache')
 makedepends=('maven' 'jdk11-openjdk' )
 depends=('java-runtime')
 optdepends=('java-jsvc')
+backup=(
+    'etc/diet4j/diet4j.conf'
+    'etc/diet4j/diet4j-defaults.conf'
+    'etc/diet4j/diet4j-jsvc-defaults.conf'
+)
 _groupId='org.diet4j'
 options=('!strip')
 _m2repo=${GRADLE_M2_HOME:-${HOME}/.m2/repository}

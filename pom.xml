@@ -4,7 +4,7 @@
 
     <groupId>org.diet4j</groupId>
     <artifactId>diet4j</artifactId>
-    <version><!-- PKGVER -->0.25<!-- /PKGVER --></version>
+    <version><!-- PKGVER -->0.26<!-- /PKGVER --></version>
     <name>diet4j</name>
     <url>http://diet4j.org/</url>
     <packaging>pom</packaging>
