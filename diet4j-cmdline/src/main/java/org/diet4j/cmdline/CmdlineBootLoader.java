@@ -40,7 +40,6 @@ import org.diet4j.core.ModuleMeta;
 import org.diet4j.core.ModuleRegistry;
 import org.diet4j.core.ModuleRequirement;
 import org.diet4j.core.ModuleResolutionCandidateNotUniqueException;
-import org.diet4j.core.ModuleRunException;
 import org.diet4j.core.ModuleSettings;
 import org.diet4j.core.NoModuleResolutionCandidateException;
 import org.diet4j.core.ScanningDirectoriesModuleRegistry;
@@ -99,19 +98,31 @@ public abstract class CmdlineBootLoader
         throws
             IOException
     {
+        CmdlineParameter.Flag helpFlag = new CmdlineParameter.Flag(  "help", "h", false );
+
         CmdlineParameters parameters = new CmdlineParameters(
-            new CmdlineParameter.Flag(  "help",         "h",    false ),
-            new CmdlineParameter.Value( "directory",    "dir",  true ),
-            new CmdlineParameter.Value( "directories",  "dirs", false ),
-            new CmdlineParameter.Value( "runclass",     null,   false ),
-            new CmdlineParameter.Value( "runmethod",    null,   false ),
-            new CmdlineParameter.Value( "config",       "c",    false ),
-            new CmdlineParameter.Flag(  "verbose",      "v",    true ),
-            new CmdlineParameter.Value( "logConfigDir", null,   true ),
-            new CmdlineParameter.Value( "logConfig",    null,   true )
+                helpFlag,
+                new CmdlineParameter.Flag(  "skipHelp",     null,   false ) {
+                    @Override
+                    public int parseValues(
+                            String [] args,
+                            int       index )
+                    {
+                        helpFlag.setClaimed( false );
+                        return super.parseValues( args, index );
+                    }
+                },
+                new CmdlineParameter.Value( "directory",    "dir",  true ),
+                new CmdlineParameter.Value( "directories",  "dirs", false ),
+                new CmdlineParameter.Value( "runclass",     null,   false ),
+                new CmdlineParameter.Value( "runmethod",    null,   false ),
+                new CmdlineParameter.Value( "config",       "c",    false ),
+                new CmdlineParameter.Flag(  "verbose",      "v",    true ),
+                new CmdlineParameter.Value( "logConfigDir", null,   true ),
+                new CmdlineParameter.Value( "logConfig",    null,   true )
         );
 
-        String [] remaining = parameters.parse( args );
+        List<String> remaining = parameters.parse( args );
 
         // help
 
@@ -160,16 +171,16 @@ public abstract class CmdlineBootLoader
         String [] moduleNames;
         // in case of command-line, we recognize only one to-be-activated root module,
         // otherwise the invocation syntax becomes awkward
-        if( remaining.length >= 1 ) {
-            moduleNames = new String[] { remaining[0] };
+        if( remaining.size() >= 1 ) {
+            moduleNames = new String[] { remaining.remove( 0 ) };
         } else {
             moduleNames = null;
         }
-        if( remaining.length > 1 ) {
-            theRunArguments = new String[ remaining.length - 1 ];
-            System.arraycopy( remaining, 1, theRunArguments, 0 , theRunArguments.length );
+        if( remaining.isEmpty() ) {
+            theRunArguments = new String[0];
         } else {
-            theRunArguments = null;
+            theRunArguments = new String[ remaining.size() ];
+            remaining.toArray( theRunArguments );
         }
 
         theRunClassName  = parameters.getSingleValued( "runclass" );
@@ -407,14 +418,13 @@ public abstract class CmdlineBootLoader
         PrintStream w = System.out;
 
         w.println( "Synopsis: (diet4j-core " + Version.VERSION + ", built " + Version.BUILDTIME + ")" );
-        w.println( "[ --directory <directory> ]... [ --directories <directories> ] [ --runclass <class> ][ --runmethod <method> ] <module> [<module> ...] [ -- <runarg> ... ] " );
+        w.println( "[ --directory <directory> ]... [ --directories <directories> ] [ --runclass <class> ][ --runmethod <method> ] <module> [ <runarg> ... ]" );
         w.println( "    where:" );
         w.println( "        <directory>:     directory in which to look for modules" );
         w.println( "        <directories>:   colon or semicolon-separated list of directories in which to look for modules" );
         w.println( "        <runclass>:      name of a non-default class whose main() method to run, instead of the rootmodule's" );
         w.println( "        <runmethod>:     name of a method in the run class to run, instead of main()" );
-        w.println( "        <module>:        name of the module(s) to activate, given as groupId:artifactId:version or groupId:artifactId" );
-        w.println( "                         The first specified module is the module that is run unless <runclass> is given" );
+        w.println( "        <module>:        name of the module to activate, given as groupId:artifactId:version or groupId:artifactId" );
         w.println( "        <runarg> ...:    argument(s) to the main() method of the run class" );
         w.println( "--config <configfile>" );
         w.println( "    where:" );
@@ -430,11 +440,12 @@ public abstract class CmdlineBootLoader
         w.println( "        diet4j!runarg:        comma or space-separated argument(s) to the main() method of the run class" );
         w.println( "--help:" );
         w.println( "    this message" );
+        w.println();
         w.println( "Logging options:" );
         w.println( "[ --verbose ]... [ --logConfDir <logConfDir> ]..." );
         w.println( "[ --logConfFile <logConffile> ]" );
         w.println( "        <logConfigFile>: name of the log configuration file to use" );
-        w.println( "        <logConfDir>:    list of directories where to look for log configuration files, defaults to [ /etc/diet4j ]" );
+        w.println( "        <logConfigDir>:  list of directories where to look for log configuration files, defaults to /etc/diet4j" );
         w.flush();
         System.exit( 0 );
     }

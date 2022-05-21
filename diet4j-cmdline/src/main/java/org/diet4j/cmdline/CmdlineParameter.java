@@ -65,6 +65,28 @@ public abstract class CmdlineParameter
     }
 
     /**
+     * Allow changing of the claimed flag.
+     *
+     * @param newValue the new value
+     */
+    public void setClaimed(
+            boolean newValue )
+    {
+        theClaimed = newValue;
+    }
+
+    /**
+     * Determine whether the diet4j bootloader claims this parameter as one of its own, or
+     * passes it on to the main Module.
+     *
+     * @return true if claimed
+     */
+    public boolean getClaimed()
+    {
+        return theClaimed;
+    }
+
+    /**
      * Parse this parameter's value from this next element in the arguments.
      *
      * @param args the arguments
@@ -80,9 +102,25 @@ public abstract class CmdlineParameter
      */
     public abstract boolean hasValueSet();
 
+    /**
+     * Full name of the parameter.
+     */
     protected final String theName;
+
+    /**
+     * Short name of the parameter, if any.
+     */
     protected final String theShortName;
-    protected boolean theMayRepeat;
+
+    /**
+     * The parameter may repeat if true.
+     */
+    protected final boolean theMayRepeat;
+
+    /**
+     * If this is set to false, we don't remove the flag from the arguments that we pass on to the main Module.
+     */
+    protected boolean theClaimed = true;
 
     /**
      * A parameter that takes no values but may be repeated.

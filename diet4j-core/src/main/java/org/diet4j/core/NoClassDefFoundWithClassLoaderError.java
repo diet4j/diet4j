@@ -49,8 +49,17 @@ public class NoClassDefFoundWithClassLoaderError
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getMessage()
+    {
+        return toString();
+    }
+
+    /**
      * Obtain the name of the Class that could not be loaded.
-     * 
+     *
      * @return the name of the Class
      */
     public String getClassName()
@@ -60,7 +69,7 @@ public class NoClassDefFoundWithClassLoaderError
 
     /**
      * Obtain the ClassLoader that could not load the class.
-     * 
+     *
      * @return the ClassLoader
      */
     public ModuleClassLoader getModuleClassLoader()

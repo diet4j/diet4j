@@ -19,6 +19,7 @@
 
 package org.diet4j.cmdline;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,39 +55,34 @@ public class CmdlineParameters
      * @param args the command-line arguments
      * @return the remaining arguments that are not interpreted as parameters
      */
-    public String [] parse(
+    public List<String> parse(
             String [] args )
     {
-        String [] ret = null;
+        List<String> ret = new ArrayList<>();
 
         int i=0;
         while( i<args.length ) {
             if( args[i].startsWith( "-" )) {
-                args[i] = args[i].substring( 1 );
-                if( args[i].startsWith( "-" )) {
-                    args[i] = args[i].substring( 1 );
+                int offset = 1;
+                if( args[i].startsWith( "--" )) {
+                    offset = 2;
                 }
 
-                CmdlineParameter foundPar = thePars.get( args[i] );
-                if( foundPar == null ) {
-                    CmdlineBootLoader.fatal( "Unknown parameter: " + args[i] );
+                CmdlineParameter foundPar = thePars.get( args[i].substring( offset ) );
+                if( foundPar == null || !foundPar.getClaimed()) {
+                    ret.add( args[i] );
+                    ++i;
+                } else {
+                    int taken = foundPar.parseValues( args, ++i ); // may fatal out
+                    i += taken;
                 }
-
-                int taken = foundPar.parseValues( args, ++i ); // may fatal out
-                i += taken;
 
             } else {
-                // we are done
-                ret = new String[ args.length-i ];
-                System.arraycopy( args, i, ret, 0, args.length-i );
-                break;
+                ret.add( args[i] );
+                ++i;
             }
         }
-        if( ret != null ) {
-            return ret;
-        } else {
-            return new String[0];
-        }
+        return ret;
     }
 
     /**
