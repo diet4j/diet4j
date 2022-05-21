@@ -106,36 +106,50 @@ public class StatusMain
             }
             return;
         }
+
+        String capability = flags.remove( "c" );
+        if( capability == null ) {
+            capability = flags.remove( "capability" );
+        }
         String module = flags.remove( "m" );
         if( module == null ) {
             module = flags.remove( "module" );
         }
 
-        if( module == (Object) NOARG ) { // get rid of silly IDE warning
-            synopsis();
-            return;
+        try {
+            if( capability != null ) {
+                showModulesWithCapabilitiy(
+                        capability,
+                        flags.remove( "long"   )    != null,
+                        flags.remove( "verbose" )   != null || flags.remove( "v" ) != null );
 
-        } else if( module != null ) {
-            try {
+                return;
+            }
+
+            if( module == (Object) NOARG ) { // get rid of silly IDE warning
+                synopsis();
+                return;
+
+            } else if( module != null ) {
                 showModule(
                         module,
                         flags.remove( "recursive" ) != null || flags.remove( "r" ) != null,
                         flags.remove( "long"   )    != null,
-                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
-
-            } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
-
-                StringBuilder msg = new StringBuilder();
-                msg.append( ex.getLocalizedMessage() );
-
-                Throwable cause = ex.getCause();
-                while( cause != null ) {
-                    msg.append( "\n    caused by: " ).append( cause.getLocalizedMessage() );
-                    cause = cause.getCause();
-                }
-                log.severe( msg.toString() );
+                        flags.remove( "verbose" )   != null || flags.remove( "v" ) != null );
             }
             return;
+
+        } catch( ModuleNotFoundException|ModuleResolutionException|ParseException ex ) {
+
+            StringBuilder msg = new StringBuilder();
+            msg.append( ex.getLocalizedMessage() );
+
+            Throwable cause = ex.getCause();
+            while( cause != null ) {
+                msg.append( "\n    caused by: " ).append( cause.getLocalizedMessage() );
+                cause = cause.getCause();
+            }
+            log.severe( msg.toString() );
         }
         synopsis();
     }
@@ -454,6 +468,41 @@ public class StatusMain
     }
 
     /**
+     * Show all modules with a certain capability.
+     *
+     * @param capability the name of the capability
+     * @param loong if true, show the entire tree, do not attempt to shorten
+     * @param verbose if true, show more detail
+     *
+     * @throws ModuleNotFoundException thrown if a needed Module could not be found
+     * @throws ModuleResolutionException thrown if a needed Module could not be resolved
+     * @throws ParseException thrown if the provided Module name was invalid
+     */
+     public static void showModulesWithCapabilitiy(
+            String  capability,
+            boolean loong,
+            boolean verbose )
+        throws
+            ModuleNotFoundException,
+            ModuleResolutionException,
+            ParseException
+    {
+        ModuleRegistry registry = findRegistry();
+
+        ModuleRequirement req     = new ModuleRequirement.Builder().requiredCapability( capability ).build();
+        ModuleMeta []     metas   = registry.determineResolutionCandidates( req );
+        Module []         modules = new Module[ metas.length ];
+
+        HashSet<Module> haveAlready = loong ? null : new HashSet<>();
+
+        for( int i=0 ; i<metas.length ; ++i ) {
+            modules[i] = registry.resolve( metas[i] );
+
+            showModule( req, modules[i], 0, haveAlready, false, verbose, System.out );
+        }
+    }
+
+     /**
      * Print the synopsis for this app.
      */
     public static void synopsis()
