@@ -73,7 +73,7 @@ public class Diet4jDaemon
             new CmdlineParameter.Value( "logConfig",    null,   true )
         );
 
-        String [] remaining = parameters.parse( dc.getArguments() );
+        List<String> remaining = parameters.parse( dc.getArguments() );
 
         // logging
 
@@ -121,16 +121,16 @@ public class Diet4jDaemon
         String [] moduleNames;
         // in case of command-line, we recognize only one to-be-activated root module,
         // otherwise the invocation syntax becomes awkward
-        if( remaining.length >= 1 ) {
-            moduleNames = new String[] { remaining[0] };
+        if( remaining.size() >= 1 ) {
+            moduleNames = new String[] { remaining.remove( 0 ) };
         } else {
             moduleNames = null;
         }
-        if( remaining.length > 1 ) {
-            theRunArguments = new String[ remaining.length - 1 ];
-            System.arraycopy( remaining, 1, theRunArguments, 0 , theRunArguments.length );
+        if( remaining.isEmpty() ) {
+            theRunArguments = new String[0];
         } else {
-            theRunArguments = null;
+            theRunArguments = new String[ remaining.size() ];
+            remaining.toArray( theRunArguments );
         }
 
         theRunClassName  = parameters.getSingleValued( "runclass" );
