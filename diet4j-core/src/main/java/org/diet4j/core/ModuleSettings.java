@@ -160,11 +160,27 @@ public class ModuleSettings
             return defaultValue;
         }
         String found = theMap.get( key );
-        if( found != null ) {
-            return Boolean.parseBoolean( found );
-        } else {
+        if( found == null ) {
             return defaultValue;
         }
+        found = found.trim().toLowerCase();
+        if( "true".equals( found ) || "t".equals( found )) {
+            return true;
+        }
+        if( "yes".equals( found ) || "y".equals( found )) {
+            return true;
+        }
+        if( "false".equals( found ) || "f".equals( found )) {
+            return false;
+        }
+        if( "no".equals( found ) || "n".equals( found )) {
+            return false;
+        }
+        int val = Integer.parseInt( found );
+        if( val != 0 ) {
+            return true;
+        }
+        return false;
     }
 
     /**
