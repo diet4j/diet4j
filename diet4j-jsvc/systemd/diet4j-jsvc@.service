@@ -2,6 +2,9 @@
 # Run one or more diet4 modules as a systemd service via jsvc
 #
 
+# Those ${foo} vs. $foo look disorganized, but they are not: distinguish between one argument that may
+# contain spaces, and one variable that should expand to several arguments
+
 [Install]
 WantedBy=multi-user.target
 
@@ -15,8 +18,9 @@ PIDFile=/run/diet4j-jsvc-%i.pid
 Environment='PIDFILE=/run/diet4j-jsvc-%i.pid'
 Environment='ERRFILE=SYSLOG'
 Environment='OUTFILE=SYSLOG'
+Environment='TMPDIR=/var/tmp/diet4j-jsvc-%i'
 Environment='JAVA_HOME=/usr/lib/jvm/default-runtime'
-Environment='JSVC_OPTS=-server -debug -nodetach -Djava.io.tmpdir=/var/tmp/diet4j-jsvc-%i'
+Environment='JSVC_OPTS=-server -debug -nodetach'
 Environment='JSVC_USER=root'
 Environment='DIET4J_ARGS=--config /etc/diet4j/diet4j-jsvc-%i.properties'
 EnvironmentFile=/etc/diet4j/diet4j-jsvc-defaults.conf
@@ -24,16 +28,15 @@ EnvironmentFile=/etc/diet4j/diet4j-jsvc-defaults.conf
 # Optional environment file that overrides values defined above:
 EnvironmentFile=-/etc/diet4j/diet4j-jsvc-%i.env
 
-# Those ${foo} vs. $foo look disorganized, but they are not: distinguish between one argument that may
-# contain spaces, and one variable that should expand to several arguments
-
-ExecStartPre=/bin/mkdir -p -m0700 /var/tmp/diet4j-jsvc-%i
+ExecStartPre=/bin/mkdir -p -m0700 ${TMPDIR}
 ExecStartPre=/bin/touch ${PIDFILE}
-ExecStartPre=/bin/chown ${JSVC_USER} /var/tmp/diet4j-jsvc-%i ${PIDFILE}
+ExecStartPre=/bin/chown ${JSVC_USER} ${TMPDIR} ${PIDFILE}
+ExecStopPost=/bin/rm -rf ${TMPDIR} ${PIDFILE}
 
 ExecStart=/usr/bin/jsvc \
         $JAVA_OPTS \
         $JSVC_OPTS \
+        -Djava.io.tmpdir=${TMPDIR} \
         $DEBUG_OPTS \
         -cp /usr/lib/java/org/diet4j/diet4j-jsvc/${DIET4J_VERSION}/diet4j-jsvc-${DIET4J_VERSION}.jar \
         -java-home ${JAVA_HOME} \
