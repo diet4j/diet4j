@@ -19,17 +19,11 @@
 
 package org.diet4j.core;
 
-import java.io.Serializable;
-
 /**
  * This represents the license for a Module.
  */
 public class ModuleLicense
-        implements
-            Serializable
 {
-    private static final long serialVersionUID = 1L; // helps with serialization
-    
     /**
      * Constructor.
      * 

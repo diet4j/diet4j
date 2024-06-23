@@ -87,10 +87,10 @@ public class StatusMain
             try {
                 if( flags.remove( "recursive" ) != null || flags.remove( "r" ) != null ) {
                     showHierarchicalModuleRegistry(
-                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
+                        flags.remove( "verbose" )   != null || flags.remove( "v" ) != null );
                 } else {
                     showFlatModuleRegistry(
-                        flags.remove( "verbose" )   != null || flags.remove( "v"   ) != null );
+                        flags.remove( "verbose" )   != null || flags.remove( "v" ) != null );
                 }
             } catch( ModuleNotFoundException | ParseException ex ) {
 

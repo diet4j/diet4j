@@ -19,7 +19,6 @@
 
 package org.diet4j.core;
 
-import java.io.Serializable;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,11 +31,7 @@ import java.util.regex.Pattern;
  * This collects all information needed to find a Module.
  */
 public class ModuleRequirement
-        implements
-            Serializable
 {
-    private static final long serialVersionUID = 1L; // helps with serialization
-
     /**
       * Factory method using a String representation corresponding to toString().
       *

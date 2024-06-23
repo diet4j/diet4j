@@ -27,8 +27,6 @@ public class NoClassDefFoundWithClassLoaderError
         extends
             NoClassDefFoundError
 {
-    private static final long serialVersionUID = 1L; // helps with serialization
-
     /**
      * Constructs a <code>NoClassDefFoundError</code> with the specified
      * detail message.

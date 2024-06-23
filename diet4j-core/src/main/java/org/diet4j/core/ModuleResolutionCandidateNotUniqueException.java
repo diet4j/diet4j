@@ -27,8 +27,6 @@ public class ModuleResolutionCandidateNotUniqueException
         extends
             ModuleException
 {
-    private static final long serialVersionUID = 1L; // helps with serialization
-
     /**
       * Constructor.
       *
