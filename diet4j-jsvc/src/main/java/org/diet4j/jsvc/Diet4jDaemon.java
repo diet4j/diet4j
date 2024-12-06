@@ -19,9 +19,11 @@
 
 package org.diet4j.jsvc;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -70,11 +72,16 @@ public class Diet4jDaemon
             new CmdlineParameter.Value( "config",       "c",    false ),
             new CmdlineParameter.Flag(  "verbose",      "v",    true ),
             new CmdlineParameter.Value( "logConfigDir", null,   true ),
-            new CmdlineParameter.Value( "logConfig",    null,   true )
+            new CmdlineParameter.Value( "logConfig",    null,   true ),
+            new CmdlineParameter.Flag(  "sd-notify",    null,   false )
         );
 
         List<String> remaining = parameters.parse( dc.getArguments() );
 
+        // notify
+        
+        theSystemdNotify = parameters.getFlagCount( "sd-notify" ) > 0;
+        
         // logging
 
         List<String> logConfigDirs = parameters.getManyValued(   "logConfigDir" );
@@ -341,6 +348,10 @@ public class Diet4jDaemon
             }
             fatal( "Run of module " + theModules[0].getModuleMeta() + " failed. Root cause: " + rootCause.getMessage(), ex );
         }
+        
+        if( theSystemdNotify ) {
+            invoke_sd_notify( "--ready" );
+        }
     }
 
     @Override
@@ -350,6 +361,10 @@ public class Diet4jDaemon
             ModuleDeactivationException,
             DaemonInitException
     {
+        if( theSystemdNotify ) {
+            invoke_sd_notify( "--stopping" );
+        }
+
         Throwable thrown = null;
         Module    failed = null;
         for( int i=theModules.length-1 ; i>=0 ; --i ) {
@@ -377,6 +392,33 @@ public class Diet4jDaemon
     public void destroy()
     {
         // no op
+    }
+
+    /**
+     * An error has happened, we will try to continue.
+     * 
+     * @param msg the message
+     */
+    protected void error(
+            String msg )
+    {
+        error( msg, null );
+    }
+
+    /**
+     * An error has happened, we will try to continue.
+     * 
+     * @param msg the message
+     * @param cause the cause
+     */
+    protected void error(
+            String    msg,
+            Throwable cause )
+    {
+        System.err.println( "ERROR: " + msg );
+        if( cause != null ) {
+            cause.printStackTrace( System.err );
+        }
     }
 
     /**
@@ -445,6 +487,38 @@ public class Diet4jDaemon
     }
 
     /**
+     * Invoke sd_notify 
+     */
+    protected void invoke_sd_notify(
+            String arg )
+    {
+        try {
+            Process p = new ProcessBuilder( "systemd-notify", arg )
+                .redirectErrorStream(true)
+                .start();
+            p.waitFor();
+            if( p.exitValue() != 0 ) {
+                StringBuilder msg = new StringBuilder();
+                msg.append( "systemd-notify " );
+                msg.append( arg );
+                msg.append( " returned with exit code " );
+                msg.append( p.exitValue());
+                msg.append( "\n" );
+                
+                BufferedReader r = new BufferedReader( new InputStreamReader( p.getInputStream() ));
+                for( String line : r.lines().toList() ) {
+                    msg.append( line );
+                    msg.append( "\n" );
+                }
+                
+                error( msg.toString());
+            }
+        } catch( Throwable t ) {
+            error("Failed to notify systemd of service readiness", t);
+        }
+    }
+
+    /**
      * The ModuleRegistry.
      */
     protected ModuleRegistry theModuleRegistry;
@@ -458,6 +532,11 @@ public class Diet4jDaemon
      * All Modules once they have been resolved.
      */
     protected Module [] theModules;
+
+    /**
+     * Use systemd-notify.
+     */
+    protected boolean theSystemdNotify;
 
     /**
      * The paths to the Module JAR files.

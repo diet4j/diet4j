@@ -1,5 +1,5 @@
 pkgname=$(basename $(pwd))
-pkgver=0.28
+pkgver=0.29
 pkgrel=1
 pkgdesc='diet4j Java module management'
 arch=('any')
@@ -54,7 +54,8 @@ package() {
     ln -s ../${pkgver}/diet4j-jsvc-${pkgver}.jar ${pkgdir}/usr/lib/java/org/diet4j/diet4j-jsvc/current/diet4j-jsvc-current.jar
 
     # Settings
-    install -m644 -D ${startdir}/diet4j-cmdline/etc/*.{conf,properties} -t ${pkgdir}/etc/diet4j/
+    install -m644 -D ${startdir}/diet4j-core/etc/*.properties -t ${pkgdir}/etc/diet4j/
+    install -m644 -D ${startdir}/diet4j-cmdline/etc/*.conf -t ${pkgdir}/etc/diet4j/
     install -m644 -D ${startdir}/diet4j-jsvc/etc/*.conf -t ${pkgdir}/etc/diet4j/
 
     # Systemd
