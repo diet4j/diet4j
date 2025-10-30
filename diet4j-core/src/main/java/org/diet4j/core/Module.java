@@ -455,6 +455,17 @@ public class Module
     }
 
     /**
+     * Obtain a String representation that leaves out the version. This is sometimes convenient if the String is
+     * used to identify a Module regardless of version.
+     * 
+     * @return String representation without version
+     */
+    public String toStringWithoutVersion()
+    {
+        return theModuleMeta.toStringWithoutVersion();
+    }
+
+    /**
      * The AbstractModuleRegistry in which this Module is registered.
      */
     protected ModuleRegistry theRegistry;

@@ -385,6 +385,21 @@ public class ModuleMeta
     }
 
     /**
+     * Obtain a String representation that leaves out the version. This is sometimes convenient if the String is
+     * used to identify a Module regardless of version.
+     * 
+     * @return String representation without version
+     */
+    public String toStringWithoutVersion()
+    {
+        StringBuilder buf = new StringBuilder();
+        buf.append( theModuleGroupId );
+        buf.append( ":" );
+        buf.append( theModuleArtifactId );
+        return buf.toString();
+    }
+
+    /**
      * The groupId of the module
      */
     protected final String theModuleGroupId;
